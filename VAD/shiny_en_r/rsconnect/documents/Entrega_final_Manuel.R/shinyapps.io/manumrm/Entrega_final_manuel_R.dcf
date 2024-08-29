@@ -1,0 +1,13 @@
+name: Entrega_final_manuel_R
+title: Entrega_final_manuel_R
+username: manumrm
+account: manumrm
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11952668
+bundleId: 8586502
+url: https://manumrm.shinyapps.io/Entrega_final_manuel_R/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|Entrega_maquinas.R|Ficheros ejercicios/Football.Rdata|Ficheros ejercicios/PrediccionesMaquina.Rdata|Ficheros ejercicios/PRICE.RData|Ficheros ejercicios/VMB_weather.csv|Practicas_ALUMNOS.Rmd|Pruebas del de angela.R|shiny-cheatsheet.pdf|ShinyappsMCD.pdf

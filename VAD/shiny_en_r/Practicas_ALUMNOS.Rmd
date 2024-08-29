@@ -1,0 +1,2008 @@
+---
+title: 'Master en Ciencia de Datos: Visualización interactiva con Shiny'
+author: "Manuel Rubio Martínez"
+date:  "`r Sys.Date()`"
+
+output:
+html_document: default
+runtime: shiny
+
+---
+
+```{r setup, include=FALSE}
+## Global code options
+knitr::opts_chunk$set(echo=FALSE)
+```
+
+# Instalación de librerías.
+
+En primer lugar cargaremos el paquete **shiny** para poder implementar aplicaciones de visualización interactiva con R y **rsconnect** para poder usar el servicio de alojamiento de apps shiny en ShinyApps.
+
+```{r}
+library(shiny)
+library(rsconnect)
+```
+
+Como hemos visto antes en primer lugar tenemos que crear una aplicación shiny que tenga una función  de interfaz con el usuario (ui) y otra con los comandos de R (server). La función de interfaz de usuario es `ui_hello` la función de servidor es `server_hello`. Finalmente hay que definir con la función `shinyApp()` cual es el nombre de la interfaz de usuario y del servidor.
+
+```{r}
+
+ui_hello <- fluidPage(titlePanel("Hola mundo!"))
+
+server_hello <- function(input, output) { }
+
+shinyApp(ui_hello, server_hello)
+
+```
+
+# Application Layout
+
+Bueno, ya tenemos una aplicación, un poco sosa, pero una aplicación al fin y al cabo. Vamos a ver como podemos dar un poco de estructura a nuestra aplicación interactiva.
+
+## Sidebar Layout
+
+Lo más sencillo para dar un poquito de "apariencia" a nuestra aplicación es añadir una barra lateral y un panel principal. esto lo haremos añadiendo dentro del entorno `fluidpage()` la función `sidebarLayout()`. Dentro de esta función tenemos que definir el contenido de la barra lateral, `sidebarPanel()` y el contenido de la ventana principal, `mainPanel()`. No prestes atención de momento a los elementos de entrada y salida, más adelante veremos como implementarlos.
+
+```{r}
+ui<-fluidPage(
+
+  titlePanel("Hola mundo"),
+
+  sidebarLayout(
+
+    sidebarPanel(
+      sliderInput("Bins", "Número de bins",  
+                  min = 1, max = 1000, value = 500)
+    ),
+
+    mainPanel(
+      p("Aquí va el contenido del mainPanel, puede ser texto, gráfico, lo que sea...")
+    )
+  )
+)
+
+server <- function(input, output) { }
+
+#shinyApp(ui, server)
+
+
+
+```
+
+
+Podemos poner la barra lateral a la derecha...
+
+```{r}
+ui<-fluidPage(
+
+  titlePanel("Hola mundo"),
+
+  sidebarLayout(position="right",
+
+    sidebarPanel(
+      sliderInput("Bins", "Número de bins",  
+                  min = 1, max = 1000, value = 500)
+    ),
+
+    mainPanel(
+      p("Aquí va el contenido del mainPanel, puede ser texto, gráfico, lo que sea...")
+    )
+  )
+)
+
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+```
+
+## Grid Layout
+
+Podemos construir distribuciones más complicadas en nuestro layout. Podemos utilizar la función `fluidRow()` que crea una fila que puede ser subdividida en columnas utilizando la función `column()`. Podemos crear una rejilla de hasta 12 columnas, Veamos  como reproducir el resultado que consigue `sidebarLayout` sin utilizar esta función. A continuación tienes un ejemplo donde hemos utilizado fluidRow para dividir la aplicación  en dos zonas, una que ocupará 4 columnas (barra lateral) y otra que ocupará 8 columnas (panel principal).
+
+
+```{r}
+ui<-fluidPage(
+
+  titlePanel("Hola Mundo"),
+
+  fluidRow(
+  
+    column(4,
+      wellPanel(
+        sliderInput("obs", "Number of observations:",  
+                    min = 1, max = 1000, value = 500)
+      )       
+    ),
+
+    column(8,
+      h5("Aquí va el contenido del mainPanel. Se parece mucho a lo conseguido con sidebarlayout"),
+      h5("¿Qué crees que hace la función wellpanel()?")
+    )
+  )
+)
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+```
+
+Como puedes ver la función `fluidRow` da mucha más libertad que `siderbarLayout` para crear layouts agradables a la vista. Veamos una distribución de una ui un poco más compleja: 
+
+```{r}
+
+library(ggplot2)
+dataset <- diamonds
+
+
+ui<-fluidPage(
+
+  title = "Diamonds Explorer",
+  
+  h5("Texto, gráfico, lo que sea que variará al modificar los elementos de entrada"),
+  
+  hr(), # Mete una linea divisoria 
+
+  fluidRow(
+    column(3,
+      h4("Diamonds Explorer"),
+      sliderInput('sampleSize', 'Sample Size', 
+                  min=1, max=nrow(dataset), value=min(1000, nrow(dataset)), 
+                  step=500, round=0),
+      br(),
+      checkboxInput('jitter', 'Jitter'),
+      checkboxInput('smooth', 'Smooth')
+    ),
+    column(4, offset = 1,
+      selectInput('x', 'X', names(dataset)),
+      selectInput('y', 'Y', names(dataset), names(dataset)[[2]]),
+      selectInput('color', 'Color', c('None', names(dataset)))
+    ),
+    column(4,
+      selectInput('facet_row', 'Facet Row', c(None='.', names(dataset))),
+      selectInput('facet_col', 'Facet Column', c(None='.', names(dataset)))
+    )
+  )
+)
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+
+```
+
+Aquí hemos introducido otros tipos de elementos de entrada como **chechboxInput** y **selectInput**.  Recordad que el máximo de columnas por fluidRow es de 12.
+
+## Tab sets
+
+Seguimos viendo elementos para organizar nuestra aplicación de manera correcta. Es en este punto donde las pestañas (tabs) dentro del panel principal pueden jugar un importante papel. Para conseguir organizar la visualización en pestañas podemos utilizar la función `tabsetPanel()`. Vemos un ejemplo para que entiendas como funciona.
+
+
+```{r}
+ui<-fluidPage(
+
+  titlePanel("Ejemplo de uso de tabsets"),
+
+  sidebarLayout(
+    
+    sidebarPanel(
+                  sliderInput("obs", "Número de muestras:",  
+                              min = 1, max = 1000, value = 500)
+    ),
+  
+    mainPanel(
+      tabsetPanel(
+        tabPanel("Gráfico", h5("Cuando sepamos pintaremos un gráfico")), 
+        tabPanel("Estadísticas", h5("Cuando sepamos mostraremos un texto")), 
+        tabPanel("Tabla", h5("Cuando sepamos mostraremos una tabla"))
+      )
+    )
+  )
+)
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+```
+
+## Navbar Pages
+
+Puede ser que quieras que el layout de tu aplicación sea más complejo y que incluya más de una pestaña pero a nivel de aplicación (la aplicación tenga varias páginas). Para ello podemos utilizar el entorno `NavbarPage()` en lugar de `fluidPage()`. Veamos un ejemplo de cómo funciona.
+
+```{r}
+ui<-navbarPage("TabApp ",
+  tabPanel("Página 1"),
+  tabPanel("Página 2"),
+  tabPanel("Página 3")
+)
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+```
+
+
+Dentro de cada pestaña de `NavbarPage()` puedes utilizar diferentes `sidebarlayout()` para cada pestaña. Como puedes ver poco a poco nuestra aplicación se puede ir complicando gradualmente!
+
+
+```{r}
+ui<-navbarPage("TabApp ",
+  tabPanel("Página 1", 
+           sidebarLayout(
+             sidebarPanel(
+                          sliderInput("obs", "Número de muestras",  
+                              min = 1, max = 1000, value = 500)),
+             mainPanel(h5("Hola Este es el contenido del panel principal de la pestaña 1"))
+             )),
+  tabPanel("Página 2",
+           sidebarLayout(
+             sidebarPanel(
+               checkboxInput("Caja1", "Procesado inteligente", 
+                             value = FALSE, width = NULL)),
+             mainPanel(h5("Hola Este es el contenido del panel principal de la pestaña 2"))
+             )),
+  tabPanel("Página 3")
+)
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+```
+
+Dentro de cada página podemos añadir más de un nivel de navegación con la ayuda de la función `navbarMenu()`. Veamos el ejemplo anterior pero consiguiendo que la página 3 tenga dos niveles de navegación.
+
+
+```{r}
+ui<-navbarPage("TabApp ",
+  tabPanel("Página 1", 
+           sidebarLayout(
+             sidebarPanel(
+                          sliderInput("obs", "Número de muestras",  
+                              min = 1, max = 1000, value = 500)),
+             mainPanel(h5("Hola Este es el contenido del panel principal de la pestaña 1"))
+             )),
+  tabPanel("Página 2",
+           sidebarLayout(
+             sidebarPanel(
+               checkboxInput("Caja1", "Procesado inteligente", 
+                             value = FALSE, width = NULL)),
+             mainPanel(h5("Hola Este es el contenido del panel principal de la pestaña 2"))
+             )),
+  navbarMenu("Página 3",
+             tabPanel("Nivel 1 Pag3"),
+             tabPanel("Nivel 2 Pag3")
+             )
+)
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+```
+
+La apariencia general o "tema" de la aplicación se puede modificar fácilmente a partir de plantillas que hay en el paquete `shinythemes`. Utilizando el parámetro `theme` de las funciones `fluidPage()`, `fixedPage()` o `navbarPage()`. Vamos a cargar el paquete y utilizar la librería en el código, mira como cambia la aplicación anterior cambiando el tema!.
+
+
+```{r}
+#install.packages("shinythemes")
+
+library(shinythemes)
+
+ui<-navbarPage(theme = shinytheme("cerulean"),
+               "TabApp ", 
+  tabPanel("Página 1", 
+           sidebarLayout(
+             sidebarPanel(
+                          sliderInput("obs", "Número de muestras",  
+                              min = 1, max = 1000, value = 500)),
+             mainPanel(h5("Hola Este es el contenido del panel principal de la pestaña 1"))
+             )),
+  tabPanel("Página 2",
+           sidebarLayout(
+             sidebarPanel(
+               checkboxInput("Caja1", "Procesado inteligente", 
+                             value = FALSE, width = NULL)),
+             mainPanel(h5("Hola Este es el contenido del panel principal de la pestaña 2"))
+             )),
+  navbarMenu("Página 3",
+             tabPanel("Nivel 1 Pag3"),
+             tabPanel("Nivel 2 Pag3")
+             )
+)
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+```
+
+Prueba a cambiar el tema por ejemplo a "flatly".
+
+
+Cuando tengas hecha la aplicación, puedes seleccionar el tema que más te guste añadiendo la siguiente linea de código `shinythemes::themeSelector()` en cualquier parte de la ui. De esta manera cuando vayas creando la aplicación puedes ver que tema te gusta más.
+
+```{r}
+#install.packages("shinythemes")
+library(shinythemes)
+library(shiny)
+
+ui<-navbarPage(
+  shinythemes::themeSelector(),
+#ui<-navbarPage(theme = shinytheme("cerulean"),
+  tabPanel("Página 1", 
+           sidebarLayout(
+             sidebarPanel(
+                          sliderInput("obs", "Número de muestras",  
+                              min = 1, max = 1000, value = 500)),
+             mainPanel(h5("Hola Este es el contenido del panel principal de la pestaña 1"))
+             )),
+  tabPanel("Página 2",
+           sidebarLayout(
+             sidebarPanel(
+               checkboxInput("Caja1", "Procesado inteligente", 
+                             value = FALSE, width = NULL)),
+             mainPanel(h5("Hola Este es el contenido del panel principal de la pestaña 2"))
+             )),
+  navbarMenu("Página 3",
+             tabPanel("Nivel 1 Pag3"),
+             tabPanel("Nivel 2 Pag3")
+             )
+)
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+```
+
+
+## EJERCICIO
+
+Vamos a hacer paso a paso una interfaz para una aplicación de control de máquinas y gestión de alarmas en una planta industrial. Crea una interfaz de aplicación como la mostrada en [este enlace][https://fermaji.shinyapps.io/AppEj1/]. Utiliza la fuente h5 para el texto. Añade un Chunk al fichero de R markdown sobre el que estamos trabajando con el código que resuelve el ejercicio.
+
+
+
+```{r}
+library(shinythemes)
+ui<-navbarPage(theme = shinytheme("slate"),
+               "App Master Ciencia de datos", 
+  tabPanel("Selección de máquina", 
+           sidebarLayout(
+             sidebarPanel(
+               h5("MÁQUINA")),
+             mainPanel(h5("Aquí mostraremos las variables A´s"))
+             )),
+  navbarMenu("Estado de la máquina",
+             tabPanel("Evolución temporal alarmas", sidebarLayout(
+             sidebarPanel(
+               h5("ALARMAS radiobuttons")),
+             mainPanel(h5("Aquí mostraremos las variables A´s en un gráfico"))
+             )),
+             tabPanel("Registro de la máquina", sidebarLayout(
+             sidebarPanel(
+               h5( "ALARMAS checkbox", 
+                             )),
+             mainPanel(h5("Aquí mostraremos una tabla con los eventos de la máquina seleccionada"))
+             ))
+            ),
+  tabPanel("Estadísticas Globales Temporales", 
+              sidebarLayout(
+             sidebarPanel(
+               h5("PERIODO Y ESTADÍSTICAS
+", 
+                             )),
+             mainPanel(h5("Aquí mostraremos determinados estadísticos en un periodo temporal"))
+             ))
+)
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+```
+
+
+
+# Entradas
+
+Como hemos observado, la aplicación shiny que hemos creado esta "vacia", con la excepción del título. Vamos a empezar a hacer una serie de ejemplos modificando la interfaz de usuario. En concreto vamos a ver las diferentes formas que tenemos de modificar parámetros de entrada de nuestro código a partir de diferentes elementos de shiny.
+
+## Botones
+
+La función `actionButton()` (para un botón) o `actionLink()` (para un enlace)  tiene como argumento "InputId", que en nuestro caso es "Boton1" y que en el futuro veremos que será la forma de consultar el contenido de dicha entrada. El valor inicial de la variable será 0, cada vez que el botón se pulse se incrementará en "1" el contenido de la variable. Tenemos también la opción de utilizar la función `submitButton` que tiene por misión actualizar las salidas de la aplicación cuando las entradas han sido modificadas. En general este botón no se utiliza mucho ya que, en general nos interesa que las salidas se actualicen inmediatamente cuando cambien las entradas.
+
+`actionButton(inputId, label, icon = NULL)`
+
+`actionLink(inputId, label, icon = NULL)`
+
+* inputId: Nombre de la variable asociada a esa entrada.
+* label: Etiqueta que se mostrará en la aplicación shiny.	
+* icon: Icono para que aparezca en el botón para hacer más atractiva la aplicación. Mirar la función `icon`. Algunos ejemplos de la librería [font-awesome][https://fontawesome.com/icons?d=gallery].
+
+
+```{r}
+ui <- fluidPage(titlePanel("Botones"),
+                      
+                      actionButton("Boton1", "Carga datos", icon= icon("arrow-alt-circle-up")),
+                      actionLink("Boton2", "Carga datos 2", icon = icon("table"))
+                      )
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+
+```
+
+## Check box único y múltiple.
+
+Otra opción interesante de entrada consiste en lo que se denomina "check box". Este elemento es la típica caja que se puede marcar o no. La variable asociada será de caracter booleano (True o False). 
+
+`checkboxInput(inputId, label, value = FALSE, width = NULL)`
+
+* inputId: Nombre de la variable asociada a esa entrada.
+* label: Etiqueta que se mostrará en la aplicación shiny.	
+* value: Valor inicial de la variable (True o False)	
+
+También tenemos la opción de crear un grupo de "check box" con la función `checkboxGroupInput()`.
+
+`checkboxGroupInput(inputId, label, choices, selected = NULL, inline = FALSE, width = NULL)`
+
+* inputId: Nombre de la variable asociada a esa entrada.
+* label: Etiqueta que se mostrará en la aplicación shiny.	
+* choices: Lista de etiquetas de la forma  "etiqueta" = "valor", ambas en formato string, para mostrar en cada checkbox.
+* inline: Si TRUE, permite poner el grupo de check box en horizontal
+
+
+```{r}
+ui <- fluidPage(titlePanel("Checkboxes"),
+                
+                      checkboxInput("Caja1", "Procesado inteligente", value = FALSE, width = NULL),
+                      checkboxGroupInput("GrupoCajas1", "Selecciona alarmas", 
+                                         choices=c("Alarma1"="A1", "Alarma2"="A2", "Alarma3"="A3" ),inline=TRUE),
+                      wellPanel(
+                        checkboxGroupInput("GrupoCajas2", "Selecciona alarmas", 
+                                         choices=c("Alarma5"="A5", "Alarma6"="A6", "Alarma7"="A7" ),inline=FALSE)
+                        )
+                      )
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+
+```
+
+## Introduciendo una fecha.
+
+En ocasiones es interesante introducir una fecha para filtrar datos que han sido adquiridos en un momento determinado, para eso está la función `dateInput()`. 
+
+`dateInput(inputId, label, value = NULL, min = NULL, max = NULL, format = "yyyy-mm-dd", language = "en", ...)`
+
+* inputId: Nombre de la variable asociada a esa entrada.
+* label: Etiqueta que se mostrará en la aplicación shiny.	
+* value: Valor por defecto de la fecha almacenada en la variable (formato yyyy-mm-dd). Si NULL fecha actual en el cliente.
+* min: Mínima fecha permitida (formato yyyy-mm-dd).
+* max: Máxima fecha permitida (formato yyyy-mm-dd).
+* format: Formato de la fecha, por defecto yyyy-mm-dd.
+* startview: Rango temporal cuando el campo de fecha es pulsado (por defecto "month").
+* weekstart: Indica el día con el que se inicia una semana (0 domingo, 6 sábado).
+* language: Idioma para mostrar el calendario al hacer click sobre el campo de fecha.
+
+
+Del mismo modo podemos almacenar un rango de fechas con el fin de filtrar por fechas dentro de un intervalo. Esto lo podemos hacer con la función `dateRangeInput()`
+
+`dateRangeInput(inputId, label, start = NULL, end = NULL, format = "yyyy-mm-dd", separator= "to", ...)`
+
+* inputId: Nombre de la variable asociada a esa entrada.
+* label: Etiqueta que se mostrará en la aplicación shiny.	
+* start: Valor por defecto del primer valor del intervalo en la variable (formato yyyy-mm-dd). Si NULL fecha actual en el cliente.
+* end: Valor por defecto del segundo valor del intervalo en la variable (formato yyyy-mm-dd). Si NULL fecha actual en el cliente.
+* min: Mínima fecha permitida (formato yyyy-mm-dd).
+* max: Máxima fecha permitida (formato yyyy-mm-dd).
+* format: Formato de la fecha, por defecto yyyy-mm-dd.
+* startview: Rango temporal cuando el campo de fecha es pulsado (por defecto "month").
+* weekstart: Indica el día con el que se inicia una semana (0 domingo, 6 sábado).
+* language: Idioma para mostrar el calendario al hacer click sobre el campo de fecha.
+* separator: Palabra entre ambas fechas.
+
+### EJERCICIO
+
+Muestra un selector de fecha y otro de rango de fechas. El primero debe preseleccionar el 17 de febrero de 2016 y el segundo el 1 de enero de 2016 ('start') y la fecha actual como 'end'. El selector de rango de fechas debe mostrar la fecha como dd-mm-yyyy, que empiece la semana en lunes, idioma español y separador "a".
+
+```{r}
+ui <- fluidPage(titlePanel("Fechas"),
+                dateInput('Fechas', 'Fecha de busqueda', value = '2016-02-17', min = NULL, max = NULL, format = "yyyy-mm-dd"),
+                   dateRangeInput('rango_fechas', label='Selecciona el día', start ='2016-01-01', end = NULL, format = "yyyy-mm-dd", separator= "a", language='es', weekstart=1)
+                      
+                    )
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+
+```
+
+## Queremos seleccionar un fichero?
+
+En ocasiones es interesante abrir un cuadro de dialogo para seleccionar un fichero, para eso está la función `fileInput()`. 
+
+`fileInput(inputId, label, multiple = FALSE, accept = NULL, width = NULL)`
+
+* inputId: Nombre de la variable asociada a esa entrada.
+* label: Etiqueta que se mostrará en la aplicación shiny.	
+* multiple: Esta opción se utilizará si tenemos que seleccionar más de un fichero.
+* accept: Tipos de ficheros que la función server aceptará.
+
+```{r}
+ui <- fluidPage(titlePanel("Carga fichero"),
+                
+                    fileInput("DatosFichero", "Selecciona el fichero de datos", accept = NULL)
+                    )
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+
+```
+
+
+## Radio Buttons.
+
+Los radio Buttons son una opción perfecta para seleccionar entre un número reducido de opciones, para ello utilizaremos la función `radioButtons()`. 
+
+`radioButtons(inputId, label, choices, selected = NULL, inline = FALSE,...)`
+
+* inputId: Nombre de la variable asociada a esa entrada.
+* label: Etiqueta que se mostrará en la aplicación shiny.	
+* choices: Lista de valores para seleccionar, de la forma "etiqueta"="valor".
+* inline: Si TRUE, coloca los radio buttons en horizontal.
+
+
+```{r}
+ui <- fluidPage(titlePanel("Radiobuttons"),
+                
+                    radioButtons("radiobuttons1", "Selecciona la franja horaria", 
+                                 c("Noche"="night", "Día"="day"))
+                    )
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+
+```
+
+## Select Box.
+
+Los select boxes son una opción perfecta para seleccionar entre un número más amplio de opciones, para ello utilizaremos la función `selectInput()`. 
+
+`selectInput(inputId, label, choices, selected = NULL, ...)`
+
+
+* inputId: Nombre de la variable asociada a esa entrada.
+* label: Etiqueta que se mostrará en la aplicación shiny.	
+* choices: Lista de valores para seleccionar.
+* selected: Valor inicial del deplegable.
+
+
+
+```{r}
+ui <- fluidPage(titlePanel("Selectbox"),
+                
+                    selectInput("Selectbox1", "Selecciona la franja horaria", 
+                                 c("Noche"="night", "Día"="day"))
+                    )
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+
+```
+
+## Sliders.
+
+La barra slider, `sliderInput()`, se usa para seleccionar un valor en un rango. También permite seleccionar un rango entre dos valores.
+
+`sliderInput(inputId, label, min, max, value, step = NULL, ...)`
+
+
+* inputId: Nombre de la variable asociada a esa entrada.
+* label: Etiqueta que se mostrará en la aplicación shiny.	
+* min: El valor mínimo que puede ser elegido.
+* max: El valor máximo que puede ser elegido.
+* value: El valor inicial del slider. En el caso de seleccionar un rango: c(valor_inicial, valor_final).
+* step: La resolución del slider.
+
+```{r}
+ui <- fluidPage(titlePanel("Sliders"),
+                
+                    sliderInput("slider1", label = h3("Selecciona el número de bins"), 
+                                 min= 1, max = 10, value = 3, step= 1),
+                     sliderInput("slider2", label = h3("Selecciona el rango de temperaturas (ºC)"), min = 0, max = 60, 
+                                 value = c(25, 45))
+                     )
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+
+```
+
+
+## Otros elementos de entrada.
+
+Existen otros elementos de entrada para para introducir un número  `numericInput()`, una cadena de texto `textInput()` o un password `passwordInput()`. 
+
+`textInput(inputId, label, value = "", width = NULL, placeholder = NULL)`
+`passwordInput(inputId, label, value = "", width = NULL, placeholder = NULL)`
+`numericInput(inputId, label, value, min = NA, max = NA, step = NA, width = NULL)`
+
+Aquí `placeholder` es un string que da indicaciones sobre lo que debemos escribir.
+
+En el punto en el que estamos y con la ayuda de R, no tendrás problemas para descifrar como funcionan estas entradas.
+
+```{r}
+ui <- fluidPage(titlePanel("Entradas varias"),
+                
+                    textInput("Texto1", "Introduce la cadena de busqueda", value = "", width = NULL, placeholder = NULL),
+                    passwordInput("Password10", "Contraseña", value = "", width = NULL, "Mínimo 8 caracteres"),
+                    numericInput("Numero1", "Número de entradas al modelo", value = 3, min = 1, max = 5, step = 1, width = NULL)
+                    
+                    )
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+
+```
+
+## EJERCICIO. 
+
+Carga y visualiza la estructura del fichero `PrediccionesMaquina.Rdata`.
+
+```{r}
+load("Ficheros ejercicios/PrediccionesMaquina.Rdata")
+
+str(Datos)
+
+```
+
+Se trata de un registro temporal de valores de alarmas ("a***") de cierto tipo, asignadas a un equipo identificado por su dirección MAC ("matricula").
+
+Añade un chunk al fichero de R markdown copiando el código con la interfaz que has creado antes. Carga antes del código de la aplicación shiny el fichero "PrediccionesMaquina.Rdata" mediante `load()` (de momento no lo cargaremos con `fileInput`) y añade los elementos de entrada que ves en la [siguiente aplicación][https://fermaji.shinyapps.io/AppEj2/].
+
+
+```{r}
+
+aes<-colnames(Datos)[5:length(colnames(Datos))-1]
+maquinas<-unique(Datos$matricula)
+```
+
+```{r}
+library(shiny)
+library(rsconnect)
+library(shinythemes)
+```
+
+
+
+```{r}
+
+ui<-navbarPage(theme = shinytheme("slate"),
+               "App Master Ciencia de datos", 
+  tabPanel("Selección de máquina", 
+           sidebarLayout(
+             sidebarPanel(
+               h5("MÁQUINA"),
+               fileInput("DatosFichero", "Selecciona un fichero", accept = NULL),
+            selectInput("Selectmaquina", "Selecciona máquina", 
+                                 maquinas)   
+               ),
+             mainPanel(h5("Aquí mostraremos las variables A´s"))
+             )),
+  navbarMenu("Estado de la máquina",
+             tabPanel("Evolución temporal alarmas", sidebarLayout(
+             sidebarPanel(
+               h5("ALARMAS radiobuttons"),
+               radioButtons("alarmas_globales","Selecciona la alarma a visualizar", choices=aes)
+               ),
+             mainPanel(h5("Aquí mostraremos las variables A´s en un gráfico"))
+             )),
+             tabPanel("Registro de la máquina", sidebarLayout(
+             sidebarPanel(
+               h5( "ALARMAS checkbox", 
+                             ),
+               checkboxGroupInput("alarmas_globales","Selecciona las alarmas para ver en la tabla", choices=aes)
+               ),
+             mainPanel(h5("Aquí mostraremos una tabla con los eventos de la máquina seleccionada"))
+             ))
+            ),
+  tabPanel("Estadísticas Globales Temporales", 
+              sidebarLayout(
+             sidebarPanel(
+               h5("PERIODO Y ESTADÍSTICAS
+", 
+                             ),dateRangeInput('rango_fechas', label='Selecciona el periodo', start ='2016-01-02', end = '2016-12-14', format = "yyyy-mm-dd", separator= "a", language='es', weekstart=1),
+ h5("HISTOGRAMA"),
+selectInput("Selectbox1", "Alarma", 
+                                 aes),
+sliderInput("slider1", label = "Número de bins del histograma", 
+                                 min= 1, max = 10, value = 5, step= 1),
+h5("BOXPLOT"),
+checkboxInput("boton_alarmas","Todas las alarmas")
+
+),
+             mainPanel(h5("Aquí mostraremos determinados estadísticos en un periodo temporal"))
+             ))
+)
+
+server <- function(input, output) { }
+
+shinyApp(ui, server)
+```
+
+
+
+# Salidas
+
+Hasta ahora hemos preparado nuestra aplicación desde el punto de vista de la interfaz y las entradas. Ahora únicamente nos falta añadir elementos de salida tales como gráficos, imágenes o tablas.
+
+## Gráficos y texto
+
+Para visualizar un gráfico tenemos que utilizar la función `plotOutput()` necesaria en la interfaz de usuario y la correspondiente función para construir la gráfica en el server `renderPlot()`. Los argumentos principales de estas funciones son:
+
+`plotOutput(outputId, width, heigth, click ...)`
+
+
+* outputId: Variable donde se deberá leer/escribir el gráfico.
+* width, height: Hará referencia al tamaño de la figura en la aplicación (como "100%", "400px", "auto").
+* click: Almacena la variable con las coordenadas donde se ha hecho click con el ratón en el gráfico
+
+`renderPlot({ código que genera el plot })`
+
+
+Para añadir cualquier elemento de salida en la aplicación habrá que añadir la función de salida (*Output, ej: plotOutput(...)) correspondiente en la interfaz de usuario. 
+
+Para poder visualizar un objeto de salida en este "hueco" asignado, primero tenemos que construirlo, y eso lo haremos en la parte del servidor (server) con las funciones `render*()`, por ejemplo `renderPlot()`. Las funciones `render*()` son **reactivas**, esto quiere decir que cada vez que haya un cambio en alguna variable de entrada (input\$InputID) en el servidor se volverá a reevaluar la función, en este caso el gráfico se recalculará dentro de la función renderPlot. La salida de `renderPlot` se tiene que asignar a una variable de salida (output\$OutputId). Así pues en la parte de la interfaz de usuario se tendrá que utilizar plotOutput("OutputId") y en la parte del servidor output\$OutputId<-renderPlot().
+
+
+```{r}
+ui<-fluidPage(titlePanel("Primer gráfico!"),
+    sidebarLayout(
+      sidebarPanel(
+        actionButton("Boton", "Nuevo dibujo")
+      ),
+      mainPanel(
+        plotOutput("grafico")
+      )
+    )
+  )
+
+server<-function(input, output) {
+    output$grafico <- renderPlot({
+      input$Boton
+      # Add a little noise to the cars data
+      cars2 <- cars + rnorm(nrow(cars))
+      plot(cars2)
+    })
+  }
+shinyApp(ui, server)
+```
+
+¿Por qué al pulsar el botón el gráfico cambia?. Si has entendido el concepto de rectividad no deberáis tener problema en contestar!.
+
+Porque cada vez que le das, se vuelve a generar los datos de cars2, añadiendo ruido aleatoriamente.
+
+
+En el `renderPlot()` leemos la entrada `input$Boton`: **CUANDO HAY UN CAMBIO EN ESTA ENTRADA (AL PULSAR CAMBIA) LA FUNCIÓN render*() SE VUELVE A EVALUAR**.
+
+¿Podemos interaccionar con el gráfico, por ejemplo averiguar las coordenadas de los puntos al hacer click?
+
+SÍ, lo veremos más tarde en un ejemplo, pero primero veamos como visualizar texto como una salida. Para visualizar texto utilizaremos las funciones `verbatimTextOutput()` y `textOutput()` en la parte de la interfaz de usuario y las correspondiente funciones para definir el texto en la parte del servidor `renderText()`. La lógica de de uso es la misma en todos los objetos de salida. Por ejemplo, usaremos `textOutput("OutputId")` en la inerfaz de usuario y `output\$OutputId<-renderText(...)` en el server.
+
+Fíjate en este ejemplo en el que se genera un texto de salida que varía con la información suministrada en una caja de texto.
+
+```{r}
+ui <- fluidPage(
+        textInput("nombre", "¿Cuál es tu nombre?"),
+        textOutput("saludo")
+)
+
+server <- function(input, output) {
+        output$saludo <- 
+                renderText(
+                        paste("Buenos días", input$nombre))
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+
+Veamos un ejemplo en el que vamos a utilizar un objeto de texto como una salida e interaccionaremos con el gráfico de **cars**.
+
+```{r}
+ui<-fluidPage(titlePanel("Primer gráfico!"),
+    sidebarLayout(
+      sidebarPanel(
+        actionButton("Boton", "Nuevo dibujo"),
+        h5("Haz click en el gráfico y mira las coordenadas"),
+        verbatimTextOutput("info_coord")
+      ),
+      mainPanel(
+        plotOutput("grafico",click="coord_click")
+      )
+    )
+  )
+
+  server<-function(input, output) {
+    output$grafico <- renderPlot({
+      input$Boton #se ejecutará el render cuando se activa el botón (luego veremos que esto se podría hacer de otra forma usando un observador!)
+      # Ahora metemos ruido aleatorio para que cada vez que se ejecute (reactividad) cambie.
+      cars2 <- cars + rnorm(nrow(cars))
+      plot(cars2)
+      })
+    
+    output$info_coord <- renderText({
+    paste0("x=", input$coord_click$x, "\ny=", input$coord_click$y)
+  })
+    
+  }
+shinyApp(ui, server)
+```
+
+
+Observa que hemos utilizado la función  `renderText()` en la parte del server para "calcular" el texto a mostrar, y también necesitamos una función de salida en la interfaz de usuario para visualizar texto, en este caso  `verbatimTextOutput()`. Fíjate que el atributo `click` del gráfico puede leerse en el server como una entrada. Es un poco lioso, pero no es tan díficil!
+
+
+### EJERCICIO
+
+Usando el dataset **mtcars** (precargado en R):
+- Previsualiza los datos.
+- Crea una UI con una entrada tipo **selectInput** que permita seleccionar los coches por número de cilindros **cyl**, y un plot de salida.
+- Crea el server que permita representar, para los coches que tengan el número de cilindros seleccionados, un gráfico de scatter con la cilindrada (**disp**) en las x y la autonomía (**mpg**) en las y, codificando la potencia **hp** en el tamaño del punto, y el peso **wt** en el color del punto.
+
+```{r}
+str(mtcars)
+```
+
+
+```{r}
+mtcars[mtcars$cyl==4,]
+```
+
+```{r}
+library(ggplot2)
+
+ui<-fluidPage(
+    sidebarLayout(
+      sidebarPanel(
+        selectInput("cilindros", "Número de cilindros",sort(c(unique(mtcars$cyl))))
+      ),
+      mainPanel(
+        plotOutput("grafico")
+      )
+    )
+)
+
+server <- function(input, output) {
+  output$grafico <- renderPlot({
+    coches <- mtcars[mtcars$cyl == as.numeric(input$cilindros), ]
+    
+    # El gráfico de dispersión (cilindrada en x, autonomía en y, potencia en el tamaño y peso en el color)
+    p <- ggplot(data = coches, aes(x = disp, y = mpg, size=hp, color=wt)) +
+      geom_point() +
+      labs(title = "Gráfico de dispersión", x = "Desplazamiento", y = "Millas por galón")
+    
+    # Imprimir el gráfico
+    print(p)
+  })
+}
+
+shinyApp(ui, server)
+
+```
+
+
+
+## Tablas
+
+Veamos ahora como manejar tablas como elemento de salida. Para ello, igual que en los casos anteriores utilizaremos las funciones `tableOutput()` y `dataTableOutput()` en  (ui). En el lado del server `renderTable()` y `renderDataTable()`. 
+
+
+`tableOutput(outputId,..)`
+
+`renderTable(expr, ...)`
+
+o
+
+`dataTableOutput(outputId,..)`
+
+`renderDataTable(expr, ...)`
+
+Como seguro que estás empezando a entenderlo, vamos a mostrar directamente un ejemplo. Vamos a visualizar la tabla de un data set de R denominado `iris`. En primer lugar lo haremos con la opción de salida `tableOutput()`.
+
+
+
+```{r}
+ui<-fluidPage(
+  
+  fluidRow(
+            column(12, tableOutput('tbl'))
+          )
+            )
+    
+server<-function(input, output) {
+      output$tbl = renderTable(iris)
+                                        }
+
+shinyApp(ui, server)
+
+```
+
+## EJERCICIO
+
+Repite utilizando `dataTableOutput()` y `renderDataTable()`.
+
+```{r}
+ui<-fluidPage(
+  
+  fluidRow(
+            column(12, dataTableOutput('tbl'))
+          )
+            )
+    
+server<-function(input, output) {
+      output$tbl = renderDataTable(iris)
+                                        }
+
+shinyApp(ui, server)
+
+```
+
+Como puedes observar, la función de salida `dataTableOutput()` muestra más opciones de visuzalización. Desde un campo de busqueda global, hasta campos de filtrado por variables.
+ 
+# Variables reactivas
+
+Las variables reactivas tienen la peculiaridad que cada vez que una entrada cambia en la aplicación Shiny el contenido del objeto reactivo se vuelve a evaluar en terminos de las nuevas entradas. Las variables reactivas pueden ser utilizadas dentro de otras funciones reactivas o dentro de cualquier objeto render*. 
+
+
+## reactive()
+
+La función `reactive()` genera objetos de tipo *reactivo*. Son objetos cuyo contenido se recalcula ante una modificación de las entradas que participan en su expresión entre {}. Cada objeto reactivo está asociado a una serie de entradas que participan en el cálculo de su salida (código entre \{\}), y cada vez que esta entrada se modifica, Shiny recalcula el valor del objeto reactivo y genera todas las salidas (objetos `render*`) que contienen el objeto. 
+
+En este ejemplo aprovechamos un objeto reactivo para modificar simultáneamente tres `renderPlot`.
+
+
+```{r}
+ui <- fluidPage(
+  wellPanel(
+    fluidRow(
+      column(3, selectInput("species", "Selecciona especie", choices = levels(iris$Species), selected = "setosa")),
+    )),
+  fluidRow(
+    column(4, plotOutput("sep.len")),
+    column(4, plotOutput("sep.wid")),
+    column(4, plotOutput("pet.len"))
+  )
+)
+
+server <- function(input, output) {
+  datos <- reactive({
+    iris %>%
+      filter(Species==input$species)
+  })
+  output$sep.len <- renderPlot({
+    datos() %>%  # observar que el objeto reactivo datos() se usa como una función
+      ggplot(aes(x=Sepal.Length)) +  geom_density()
+  })
+  output$sep.wid <- renderPlot({
+    datos() %>%
+      ggplot(aes(x=Sepal.Width)) +  geom_density()
+  })
+  output$pet.len <- renderPlot({
+    datos() %>%
+      ggplot(aes(x=Petal.Length)) +  geom_density()
+  })
+  
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+## isolate()
+
+En ocasiones queremos que el cambio en una entrada (o una variable reactiva) no afecte a la ejecución de un código. Para ello se envuelve esa expresión en un entorno **isolate()** en la parte del server. Normalmente **isolate()** se usa para que cambios "menores" no hagan que se ejecute de nuevo toda la parte "pesada" de nuestra aplicación, con el coste computacional innecesario que eso conlleva. Por lo tanto es un recurso interesante a la hora de depurar un código.
+
+### EJERCICIO
+
+La siguiente aplicación genera un plot que se actualiza al activar un botón y le asigna el título que escribamos en un campo de texto.
+
+```{r}
+library(ggplot2)
+
+ui<-fluidPage(titlePanel("Cars"),
+              actionButton("Boton", "Nuevo dibujo"),
+              textInput(inputId = "titulo",label = "Titulo", placeholder ="Escribe un título"),
+              plotOutput("carsplot")
+  )
+
+server<-function(input, output) {
+    output$carsplot <- renderPlot({
+      input$Boton
+      plot(cars + rnorm(nrow(cars)), main=input$titulo)
+    })
+  }
+shinyApp(ui, server)
+```
+
+Si no queremos que cada vez que cambiemos de título se cree una nueva figura, sino que solamente lo haga al pulsar el botón, ¿cómo lo harías usando **isolate()**?
+
+```{r}
+ui<-fluidPage(titlePanel("Cars"),
+              actionButton("Boton", "Nuevo dibujo"),
+              textInput(inputId = "titulo",label = "Titulo", placeholder ="Escribe un título"),
+              plotOutput("carsplot")
+  )
+
+server<-function(input, output) {
+    output$carsplot <- renderPlot({
+      input$Boton
+      plot(cars + rnorm(nrow(cars)), main=isolate(input$titulo))
+    })
+  }
+shinyApp(ui, server)
+```
+
+Ahora cada vez que pulses el botón, se generará la nueva figura con el título que hemos puesto.
+
+## Eventos reactivos
+
+Un evento consistente en accionar una entrada como puede ser el click de un botón, o un cambio en un objeto reactivo, puede servir para provocar que se recalcule algún valor y se actualice alguna salida de manera reactiva. Para gestionar un evento tenemos las funciones `observeEvent()` y `eventReactive()`.
+
+`observeEvent(evento_a_observar, {código_a_ejecutar})` 
+
+`obj_reactivo <- eventReactive(evento_a_observar, {código_para_calcular_obj_reactivo})`
+
+La función `observeEvent` reejecuta el código cada vez que se detecta el evento, mientras que `eventReactive` es similar a `reactive` en cuanto a que genera un objeto reactivo, pero en lugar de reaccionar ante cualquier variación en una entrada entre sus \{\}, reacciona ante una entrada concreta (evento) y no ante cambios en otras variables que participen en su código entre \{\}.
+
+Ejemplo:
+
+```{r}
+ui<- fluidPage(titlePanel("Eventos"),
+  fluidRow(
+      column(4,
+        numericInput("x", "Value", 5),
+        actionButton("button", "Show")
+      ),
+      column(8, tableOutput("table"))
+    )
+)
+
+server<- function(input, output) {
+      # ejecutar el código cada vez que detecta el evento.
+      # No hay reactividad por cambios en variables entre los {} 
+      observeEvent(input$button, {
+        cat("Showing", input$x, "rows\n")
+      })
+      # Crea un valor reactivo basado en el evento, pero no
+      # se recalcula cuando cambia algún valor entre los {}
+      df <- eventReactive(input$button, {
+        head(cars, input$x)
+      })
+      output$table <- renderTable({
+        df()
+      })
+}
+
+shinyApp(ui, server)
+
+```
+
+## reactiveValues()
+
+La función `reactiveValues()` genera un contenedor de objetos reactivos, a modo de lista, para que puedan ser usados en contextos reactivos, como los `render*()`. Cuando se escribe sobre alguno de estos objetos, se crea una relación de depedencia que hace que se ejecuten los `render*()` donde participa el objeto.
+
+`contenedor <- reactiveValues(nombre_obj = 'valor_por_defecto', ...)`
+
+El acceso a una variable contenida en el objeto se realiza mediante `contenedor$nombre_obj`.
+
+Un ejemplo de uso típico es cuando necesitamos una variable global, accesible desde los diversos `render*`, cuyo valor dependa de sus estados anteriores (reacciona ante las entradas pero también depende de sus valores anteriores), como puede ser un contador. En la siguiente aplicación se muestra este comportamiento. La aplicación tiene un valor de cuenta que se puede incrementar, decrementar, o reinicializar al pulsar el botón correspondiente.
+
+
+```{r}
+ui <- fluidPage(
+    tags$b("Simple counter using reactiveValues() - An example"),
+    br(),
+    actionButton("add1", "+ 1"),
+    actionButton("sub1", "- 1"),
+    actionButton("reset", "set to 0"),
+    br(),
+    textOutput("count")
+  )
+
+server <- function(input, output) {
+    counter <- reactiveValues(countervalue = 0) # Defining & initializing the reactiveValues object
+    
+    observeEvent(input$add1, {
+      counter$countervalue <- counter$countervalue + 1     # if the add button is clicked, increment the value by 1 and update it
+    })
+    observeEvent(input$sub1, {
+      counter$countervalue <- counter$countervalue - 1  # if the sub button is clicked, decrement the value by 1 and update it
+    })
+    observeEvent(input$reset, {
+      counter$countervalue <- 0                     # if the reset button is clicked, set the counter value to zero
+    })
+    output$count <- renderText({
+      paste("Counter Value is ", counter$countervalue)   # print the latest value stored in the reactiveValues object
+    })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+## Observe()
+
+Un observador es como una expresión reactiva en el sentido de que puede leer valores reactivos y llamar expresiones reactivas, y se volverá a ejecutar automáticamente cuando cambien esas dependencias. Pero a diferencia de las expresiones reactivas, no produce un resultado y no se puede utilizar como entrada para otras expresiones reactivas. Por lo tanto, los observadores solo son útiles por sus efectos secundarios (por ejemplo, realizar tareas de I/O, por ejemplo mostrar un pop-up) o cambiar el valor de una variable. En el ejemplo del contador que vimos, podemos añadir un observador que detecte cuando el nivel de cuenta es mayor que 10 y muestre un pop-up:
+
+```{r}
+ui <- fluidPage(
+    tags$b("Simple counter with an observer"),
+    br(),
+    actionButton("add1", "+ 1"),
+    actionButton("sub1", "- 1"),
+    actionButton("reset", "set to 0"),
+    br(),
+    textOutput("count")
+  )
+
+server <- function(input, output) {
+    counter <- reactiveValues(countervalue = 0) # Defining & initializing the reactiveValues object
+    
+    observe({if (counter$countervalue > 10)
+      showModal(modalDialog("Max count reached!"))})
+    
+    observeEvent(input$add1, {
+      counter$countervalue <- counter$countervalue + 1     # if the add button is clicked, increment the value by 1 and update it
+    })
+    observeEvent(input$sub1, {
+      counter$countervalue <- counter$countervalue - 1  # if the sub button is clicked, decrement the value by 1 and update it
+    })
+    observeEvent(input$reset, {
+      counter$countervalue <- 0                     # if the reset button is clicked, set the counter value to zero
+    })
+    output$count <- renderText({
+      paste("Counter Value is ", counter$countervalue)   # print the latest value stored in the reactiveValues object
+    })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+Modifica el `observe` para que se muestre el popup si la cuenta es mayor que 10 o menor que -10, y además en tales casos reinicialice la cuenta a cero.
+
+```{r}
+ui <- fluidPage(
+    tags$b("Simple counter with an observer"),
+    br(),
+    actionButton("add1", "+ 1"),
+    actionButton("sub1", "- 1"),
+    actionButton("reset", "set to 0"),
+    br(),
+    textOutput("count")
+  )
+
+server <- function(input, output) {
+    counter <- reactiveValues(countervalue = 0) # Defining & initializing the reactiveValues object
+    
+    observe({if (counter$countervalue > 10| counter$countervalue < -10){
+      showModal(modalDialog("Max count reached!"))
+      counter$countervalue<-0
+      }
+    })
+      
+    
+    observeEvent(input$add1, {
+      counter$countervalue <- counter$countervalue + 1     # if the add button is clicked, increment the value by 1 and update it
+    })
+    observeEvent(input$sub1, {
+      counter$countervalue <- counter$countervalue - 1  # if the sub button is clicked, decrement the value by 1 and update it
+    })
+    observeEvent(input$reset, {
+      counter$countervalue <- 0                     # if the reset button is clicked, set the counter value to zero
+    })
+    output$count <- renderText({
+      paste("Counter Value is ", counter$countervalue)   # print the latest value stored in the reactiveValues object
+    })
+}
+
+shinyApp(ui = ui, server = server)
+```
+
+
+### Ejercicio: Reactividad
+
+Usaremos el dataset **"VMB_weather.csv"** que contiene el registro de varias medidas meteorológicas diarias (temperatura y precipitación) registradas en los aeropuertos de Barajas (Madrid), El Prat (Barcelona) y Manises (Valencia) entre los años 1980 y 2019. Estos datos se han descargado desde la página https://www.ncdc.noaa.gov/cdo-web/search de la NOAA (National Oceanic and Atmospheric Administration) de los EE.UU.
+
+1. Carga el dataset. Guarda el dataframe en una variable 'DF'. Echa un vistazo a los datos. Convierte la columna 'STATION' a factor. 
+
+```{r}
+library(readr)
+DF <- read_csv("Ficheros ejercicios/VMB_weather.csv")
+DF$STATION <- factor(DF$STATION)
+str(DF)
+```
+
+2. Haz un plot de línea (ggplot) de la evolución de la temperatura máxima en "Valencia" en el año 2008. Añade una línea de ajuste con geom_smooth() y etiqueta los ejes.
+
+
+```{r}
+DF$DATE <- as.Date(DF$DATE)
+datos_2008 <- subset(DF, format(DATE, "%Y") == "2008")
+```
+
+
+```{r warning=FALSE}
+library(ggplot2)
+ggplot(datos_2008, aes(x = DATE, y = TMAX)) +
+  geom_line() +
+  geom_smooth() +
+  labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución de la temperatura máxima en Valencia en el año 2008")
+```
+
+3. Vamos a hacer una app Shiny con las siguientes características:
+- radiobuttons para seleccionar la estación.
+- Un slider para seleccionar el año. El rango del slider debe ajustarse a los datos de la columna `DATE`. 
+- Los selectores de estación y año deben estar en un mismo entorno `wellPanel`.
+- 3 gráficas con las temperaturas máxima "TMAX", media "TAVG" y mínima "TMIN" para la estación seleccionada, con las cracterísticas de la gráfica del apartado anterior. Se deben disponer las 3 gráficas en una fila, ocupando todo el ancho de la app.
+- Las gráficas se deben actualizar automáticamante al cambiar el valor de la estación o el año.
+
+
+```{r}
+library(lubridate)
+year(DF$DATE)
+```
+
+
+```{r}
+
+ui<-fluidPage(
+
+  titlePanel("PRECIPITACIONES"),
+  
+    wellPanel(fluidRow(column(4,radioButtons("Estacion", "Selecciona la estación", c(unique(DF$STATION)))),
+
+      column(4,sliderInput("Year", "Selecciona el año",  
+                  min = min(year(DF$DATE)), max = max(year(DF$DATE)), value = min(year(DF$DATE))))))
+    ,
+
+    mainPanel(
+      fluidRow(column(4,plotOutput("TMAX")),column(4,plotOutput("TAVG")),column(4,plotOutput("TMIN")))
+    )
+  )
+
+server <- function(input, output) {
+  
+  datos <- reactive(subset(DF, format(DATE, "%Y") == input$Year))
+  
+  output$TMAX <- renderPlot({
+ggplot(datos(), aes(x = DATE, y = TMAX)) +
+  geom_line() +
+  geom_smooth() +
+  labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución T.ª máxima")
+  })
+  
+  
+    output$TAVG <- renderPlot({
+ggplot(datos(), aes(x = DATE, y = TAVG)) +
+  geom_line() +
+  geom_smooth() +
+  labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución T.ª media")
+  })
+  
+  
+      output$TMIN <- renderPlot({
+ggplot(datos(), aes(x = DATE, y = TMIN)) +
+  geom_line() +
+  geom_smooth() +
+  labs(x = "Fecha", y = "Temperatura (°C)", title = "Evolución T.ª mínima")
+  })
+}
+shinyApp(ui, server)
+
+
+
+```
+
+4. Modifica la aplicación de la siguiente manera:
+- Ahora la selección de estación se hará por medio de un menú desplegable.
+- La actualización de las gráficas sólo se producirá al pulsar un botón.
+
+
+```{r}
+ui <- fluidPage(
+  titlePanel("PRECIPITACIONES"),
+  
+  wellPanel(
+    fluidRow(
+      column(4,
+             selectInput("Estacion", "Selecciona la estación", choices = unique(DF$STATION))),
+      column(4,
+             sliderInput("Year", "Selecciona el año",  
+                         min = min(year(DF$DATE)), 
+                         max = max(year(DF$DATE)), 
+                         value = min(year(DF$DATE)))),
+      column(4,
+             actionButton("update_button", "Actualizar"))
+    )
+  ),
+  
+  mainPanel(
+    fluidRow(
+      column(4, plotOutput("TMAX")),
+      column(4, plotOutput("TAVG")),
+      column(4, plotOutput("TMIN"))
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  datos <- reactiveVal(NULL)
+  
+  observeEvent(input$update_button, {
+    datos(subset(DF, format(DATE, "%Y") == input$Year & STATION == input$Estacion))
+  })
+  
+  output$TMAX <- renderPlot({
+    req(datos())
+    ggplot(datos(), aes(x = DATE, y = TMAX)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución T.ª máxima")
+  })
+  
+  output$TAVG <- renderPlot({
+    req(datos())
+    ggplot(datos(), aes(x = DATE, y = TAVG)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución T.ª media")
+  })
+  
+  output$TMIN <- renderPlot({
+    req(datos())
+    ggplot(datos(), aes(x = DATE, y = TMIN)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura (°C)", title = "Evolución T.ª mínima")
+  })
+}
+
+shinyApp(ui, server)
+
+```
+
+
+5. Añade un checkboxInput() bajo las anteriores gráficas, que al seleccionarlo dibuje un diagrama de barras de precipitación acumulada mensual (columna "PRCP") para la estación y el año seleccionados.
+
+```{r}
+
+ui <- fluidPage(
+  titlePanel("PRECIPITACIONES"),
+  
+  wellPanel(
+    fluidRow(
+      column(4,
+             selectInput("Estacion", "Selecciona la estación", choices = unique(DF$STATION))),
+      column(4,
+             sliderInput("Year", "Selecciona el año",  
+                         min = min(year(DF$DATE)), 
+                         max = max(year(DF$DATE)), 
+                         value = min(year(DF$DATE)))),
+      column(4,
+             actionButton("update_button", "Actualizar"))
+    )
+  ),
+  
+  mainPanel(
+    fluidRow(
+      column(4, plotOutput("TMAX")),
+      column(4, plotOutput("TAVG")),
+      column(4, plotOutput("TMIN")),
+      column(12, checkboxInput("show_precipitation", "Mostrar precipitación acumulada mensual"))
+    ),
+    fluidRow(
+      column(12, plotOutput("precipitation_plot"))
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  datos <- reactiveVal(NULL)
+  
+  observeEvent(input$update_button, {
+    datos(subset(DF, format(DATE, "%Y") == input$Year & STATION == input$Estacion))
+  })
+  
+  output$TMAX <- renderPlot({
+    req(datos())
+    ggplot(datos(), aes(x = DATE, y = TMAX)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución T.ª máxima")
+  })
+  
+  output$TAVG <- renderPlot({
+    req(datos())
+    ggplot(datos(), aes(x = DATE, y = TAVG)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución T.ª media")
+  })
+  
+  output$TMIN <- renderPlot({
+    req(datos())
+    ggplot(datos(), aes(x = DATE, y = TMIN)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura (°C)", title = "Evolución T.ª mínima")
+  })
+  
+  output$precipitation_plot <- renderPlot({
+    req(datos())
+    if (input$show_precipitation) {
+      ggplot(datos(), aes(x = as.factor(month(DATE)), y = PRCP)) +
+        geom_bar(stat = "sum", fill = "blue") +
+        labs(x = "Mes", y = "Precipitación acumulada", title = "Precipitación acumulada mensual")
+    } else {
+      NULL
+    }
+  })
+}
+
+shinyApp(ui, server)
+
+
+
+```
+
+
+ 
+## Figuras interactivas
+
+Podemos dar un toque más moderno y atractivo a nuestras apps incluyendo figuras interactivas. Para ello, una librería muy utlizada es **plotly**.
+
+```{r}
+#install.packages(plotly)
+library(plotly)
+```
+
+La función **plotly()** admite como entrada una figura de ggplot() y la convierte en interactiva. Vamos a ver un ejemplo con el dataset **VMB_weather**. 
+
+```{r}
+library(plotly)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+p<- ggplot(data=filter(DF, STATION=="Madrid" & year(DATE)=="2005"), aes(x=DATE, y=TMAX)) + geom_line() + geom_smooth() + labs(x="Fecha", y="Tª máxima")
+ggplotly(p)
+```
+
+En una app Shiny es posible incrustar gráficas interactivas mediante las funciones plotlyOutput() en la ui y renderPlotly() en el server.
+El uso de estas dos funciones es análogo a plotOutput() y renderPlot().
+
+### Ejercicio
+
+Modifica el código de la aplicación de cálculo de las gráficas del dataset **"VMB_weather"** para hacer las gráficas interactivas.
+
+```{r}
+
+ui <- fluidPage(
+  titlePanel("PRECIPITACIONES"),
+  
+  wellPanel(
+    fluidRow(
+      column(4,
+             selectInput("Estacion", "Selecciona la estación", choices = unique(DF$STATION))),
+      column(4,
+             sliderInput("Year", "Selecciona el año",  
+                         min = min(year(DF$DATE)), 
+                         max = max(year(DF$DATE)), 
+                         value = min(year(DF$DATE)))),
+      column(4,
+             actionButton("update_button", "Actualizar"))
+    )
+  ),
+  
+  mainPanel(
+    fluidRow(
+      column(4, plotlyOutput("TMAX")),
+      column(4, plotlyOutput("TAVG")),
+      column(4, plotlyOutput("TMIN")),
+      column(12, checkboxInput("show_precipitation", "Mostrar precipitación acumulada mensual"))
+    ),
+    fluidRow(
+      column(12, plotlyOutput("precipitation_plot"))
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  datos <- reactiveVal(NULL)
+  
+  observeEvent(input$update_button, {
+    datos(subset(DF, format(DATE, "%Y") == input$Year & STATION == input$Estacion))
+  })
+  
+  output$TMAX <- renderPlotly({
+    req(datos())
+    p <- ggplot(datos(), aes(x = DATE, y = TMAX)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución T.ª máxima")
+    ggplotly(p)
+  })
+  
+  output$TAVG <- renderPlotly({
+    req(datos())
+    p <- ggplot(datos(), aes(x = DATE, y = TAVG)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución T.ª media")
+    ggplotly(p)
+  })
+  
+  output$TMIN <- renderPlotly({
+    req(datos())
+    p <- ggplot(datos(), aes(x = DATE, y = TMIN)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura (°C)", title = "Evolución T.ª mínima")
+    ggplotly(p)
+  })
+  
+  output$precipitation_plot <- renderPlotly({
+    req(datos())
+    if (input$show_precipitation) {
+      p <- ggplot(datos(), aes(x = as.factor(month(DATE)), y = PRCP)) +
+        geom_bar(stat = "sum", fill = "blue") +
+        labs(x = "Mes", y = "Precipitación acumulada", title = "Precipitación acumulada mensual")
+      ggplotly(p)
+    } else {
+      NULL
+    }
+  })
+}
+
+shinyApp(ui, server)
+
+```
+
+
+```{r}
+library(shiny)
+library(ggplot2)
+library(plotly)
+library(lubridate)
+ui <- fluidPage(
+  titlePanel("PRECIPITACIONES"),
+  
+  wellPanel(
+    fluidRow(
+      column(4,
+             selectInput("Estacion", "Selecciona la estación", choices = unique(DF$STATION))),
+      column(4,
+             sliderInput("Year", "Selecciona el año",  
+                         min = min(year(DF$DATE)), 
+                         max = max(year(DF$DATE)), 
+                         value = min(year(DF$DATE)))),
+      column(4,
+             actionButton("update_button", "Actualizar"))
+    )
+  ),
+  
+  mainPanel(
+    fluidRow(
+      column(4, plotlyOutput("TMAX")),
+      column(4, plotlyOutput("TAVG")),
+      column(4, plotlyOutput("TMIN")),
+      column(12, checkboxInput("show_precipitation", "Mostrar precipitación acumulada mensual"))
+    ),
+    fluidRow(
+      column(12, plotlyOutput("precipitation_plot"))
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  datos <- reactiveVal(NULL)
+  
+  observeEvent(input$update_button, {
+    datos(subset(DF, format(DATE, "%Y") == input$Year & STATION == input$Estacion))
+  })
+  
+  output$TMAX <- renderPlotly({
+    req(datos())
+    p <- ggplot(datos(), aes(x = DATE, y = TMAX)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución T.ª máxima")
+    ggplotly(p) %>%
+      layout(title = list(text = "Evolución T.ª máxima", 
+                          margin = list(b = 50, t = 100)))
+  })
+  
+  output$TAVG <- renderPlotly({
+    req(datos())
+    p <- ggplot(datos(), aes(x = DATE, y = TAVG)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura en ºC", title = "Evolución T.ª media")
+    ggplotly(p) %>%
+      layout(title = list(text = "Evolución T.ª media", 
+                          margin = list(b = 50, t = 100)))
+  })
+  
+  output$TMIN <- renderPlotly({
+    req(datos())
+    p <- ggplot(datos(), aes(x = DATE, y = TMIN)) +
+      geom_line() +
+      geom_smooth() +
+      labs(x = "Fecha", y = "Temperatura (°C)", title = "Evolución T.ª mínima")
+    ggplotly(p) %>%
+      layout(title = list(text = "Evolución T.ª mínima", 
+                          margin = list(b = 50, t = 100)))
+  })
+  
+  output$precipitation_plot <- renderPlotly({
+    req(datos())
+    if (input$show_precipitation) {
+      p <- ggplot(datos(), aes(x = as.factor(month(DATE)), y = PRCP)) +
+        geom_bar(stat = "sum", fill = "blue") +
+        labs(x = "Mes", y = "Precipitación acumulada", title = "Precipitación acumulada mensual")
+      ggplotly(p) %>%
+        layout(title = list(text = "Precipitación acumulada mensual", 
+                            margin = list(b = 50, t = 100)))
+    } else {
+      NULL
+    }
+  })
+}
+
+shinyApp(ui, server)
+
+```
+
+
+## UI dinámica
+
+En ocasiones es necesario  visualizar en la interfaz de usuario (ui) elementos de entrada que han sido construidos en el server (si, si, en el server y no la interfaz de usuario) porque esos elementos de entrada son dinámicos y dependen de valores calculados en el server. La funciones que proporcionan esta funcionalidad son:
+
+
+`uiOutput(outputId,..)`
+
+`renderUI(expr, ...)`
+
+```{r}
+ui <- fluidPage(titlePanel("Creando elementos de entrada de UI en el server"),
+  uiOutput("moreControls")
+)
+
+server <- function(input, output) {
+    output$moreControls <- renderUI(
+                                    {
+                                    tagList( #utilizamos taglist porque hay más de un tag de shiny (el slider y el campo de texto)
+                                            sliderInput("n", "N", 1, 1000, 500),
+                                            textInput("label", "Label")
+                                           )
+                                    }
+                                  )
+                                }
+shinyApp(ui, server)
+```
+
+Aparentemente, en el ejemplo anterior no era necesario construir los elementos de entrada en el server, pero... ¿Qué ocurre si los argumentos de la función de entrada dependen de alguna variable reactiva, que ha sido calculada en el server o de una entrada a la que solo tenemos acceso en el server?. Veamos un ejemplo, queremos cargar un fichero de datos y que automáticamente aparezca tantos radiobuttons como variables tenga el dataframe contenido en el fichero. Prueba con los ficheros `football.Rdata` y `PRICE.Rdata`.
+
+Para comprender el siguiente código, debemos entender el resultado de **fileInput**:
+
+data.frame that contains one row for each selected file, and following columns:
+
+- name: The filename provided by the web browser. This is not the path to read to get at the actual data that was uploaded (see datapath column).
+- size: The size of the uploaded data, in bytes.
+- type: The MIME type reported by the browser (for example, text/plain), or empty string if the browser didn't know.
+- datapath: The path to a temp file that contains the data that was uploaded. This file may be deleted if the user performs another upload operation.
+
+```{r}
+
+ui <- fluidPage(titlePanel("Creando elementos de entrada de UI en el server"),
+                
+                fileInput("DatosFichero", "Selecciona el fichero de datos", accept = NULL),
+                uiOutput('Buttons')
+)
+
+server <- function(input, output) { 
+  #Definimos una variable reactiva, esta variable podrá ser utilizada en cualquier render
+  Tipos_R<-reactive({
+                      req(input$DatosFichero) # evita el error que se produce cuando aún no se ha cargado el fichero
+                      nombre_df=load(input$DatosFichero$datapath) # devuelve el nombre del dataframe contenido en el fichero
+                      vars<-names(eval(parse(text=nombre_df))) # evalua el dataframe a partir de su nombre y obtiene los nombres de columnas
+                      return(vars)
+                    })
+  output$Buttons<-renderUI({
+                                  radioButtons("Variable","Variables en el conjunto",Tipos_R())
+                          })
+  
+}
+
+shinyApp(ui, server)
+
+```
+ 
+
+
+
+## EJERCICIO
+
+Copia el código con la interfaz de control de máquinas que has creado antes. Elimina la carga mediante load, al principio del código de la aplicación shiny, del fichero "PrediccionesMaquina.Rdata". Tendrás que crear el selectInput para matrícula, los radiobuttons y checkboxes de las alarmas a*** y el selectInput del histograma/boxplot a partir de las variables obtenidas del fichero cargado. El resultado debe asemejarse a lo que se ve en este [enlace][https://fermaji.shinyapps.io/AppEj3/].
+
+
+
+```{r}
+library(shinythemes)
+library(shiny)
+library(ggplot2)
+library(plotly)
+library(lubridate)
+load("Ficheros ejercicios/PrediccionesMaquina.Rdata")
+aes<-colnames(Datos)[5:length(colnames(Datos))-1]
+maquinas<-unique(Datos$matricula)
+```
+
+
+
+
+```{r, echo=FALSE}
+
+
+ui<-navbarPage(theme = shinytheme("slate"),
+               "App Master Ciencia de datos", 
+  tabPanel("Selección de máquina", 
+           sidebarLayout(
+             sidebarPanel(
+               h5("MÁQUINA"),
+               fileInput("DatosFichero", "Selecciona un fichero", accept = NULL),
+            uiOutput("Selectmaquina")   
+               ),
+             mainPanel(h5("Aquí mostraremos las variables A´s"))
+             )),
+  navbarMenu("Estado de la máquina",
+             tabPanel("Evolución temporal alarmas", sidebarLayout(
+             sidebarPanel(
+               h5("ALARMAS radiobuttons"),
+               uiOutput("alarmas_radiobuttons")
+               ),
+             mainPanel(h5("Aquí mostraremos las variables A´s en un gráfico"))
+             )),
+             tabPanel("Registro de la máquina", sidebarLayout(
+             sidebarPanel(
+               h5( "ALARMAS checkbox", 
+                             ),
+               uiOutput("alarmas_checkbox")
+               ),
+             mainPanel(h5("Aquí mostraremos una tabla con los eventos de la máquina seleccionada"))
+             ))
+            ),
+  tabPanel("Estadísticas Globales Temporales", 
+              sidebarLayout(
+             sidebarPanel(
+               h5("PERIODO Y ESTADÍSTICAS
+", 
+                             ),dateRangeInput('rango_fechas', label='Selecciona el periodo', start ='2016-01-02', end = '2016-12-14', format = "yyyy-mm-dd", separator= "a", language='es', weekstart=1),
+ h5("HISTOGRAMA"),
+uiOutput("Select_alarma"),
+sliderInput("slider1", label = "Número de bins del histograma", 
+                                 min= 1, max = 10, value = 5, step= 1),
+h5("BOXPLOT"),
+checkboxInput("boton_alarmas","Todas las alarmas")
+
+),
+             mainPanel(h5("Aquí mostraremos determinados estadísticos en un periodo temporal"))
+             ))
+)
+
+server <- function(input, output) { 
+  datos <- reactive({
+    req(input$DatosFichero)
+    name<- load(input$DatosFichero$datapath)
+    data <- eval(parse(text = name))
+    return(data)
+  })
+  
+  output$Selectmaquina <- renderUI({
+    selectInput("Selectmaquina", "Selecciona una máquina", choices = unique(datos()$matricula))
+  })
+  
+  output$alarmas_radiobuttons <- renderUI({
+    radioButtons("alarmas_radiobuttons", "Selecciona la alarma a visualizar", colnames(datos())[5:length(colnames(datos()))-1])
+  })
+  
+  output$alarmas_checkbox <- renderUI({
+    checkboxGroupInput("alarmas_checkbox", "Selecciona las alarmas para ver en la tabla", colnames(datos())[5:length(colnames(datos()))-1])
+  })
+  
+  output$Select_alarma <- renderUI({ 
+    selectInput("Select_alarma","Alarma", colnames(datos())[5:length(colnames(datos()))-1]) 
+  })
+  
+}
+
+shinyApp(ui, server)
+```
+
+COMO PUEDES OBSERVAR, CADA VEZ LA COSA SE COMPLICA MÁS! EL ORDEN ES FUNDAMENTAL!!!
+
+
+
+## TAREA ENTREGABLE
+
+Copia el código con la interfaz que has creado antes. Completa la aplicación añadiendo los elementos de salida que se muestran en la aplicación completa: [este enlace][https://fermaji.shinyapps.io/AppEjFinal/].
+
+Lo que se muestra es un ejemplo, pero se da total libertad para modificar la apariencia de la app!
+
+La funcionalidad mínima debe incluir:
+
+- Generación automática de los elementos de la UI a partir del fichero cargado  
+- Crear correctamente el selector de máquinas por identificador de matrícula única.
+- Representar la probabilidad de orden (`p_orden`) al seleccionar cada máquina.
+- Funcionamiento correcto al seleccionar/deseleccionar las alarmas, tanto como figura como en la tabla.
+- Funcionamiento correcto del widget del calendario para acotar por fechas.
+- Funcionamiento correcto del slider selector de ancho de bin para el histograma.
+- Representación correcta del histograma y boxplot por alarma.
+- Funcionamiento correcto del boxplot para todas las máquinas.
+
+OPCIONALMENTE:
+
+- Filtrar por alarmas activas/inactivas en la máquina seleccionada y mostrarlo al usuario.
+- Advertir de errores en el formato ala cargar el fichero.
+- Posibilidad de seleccionar entre histograma o boxplot en las estadísticas.
+- Hacer interactiva la gráfica de probabilidad de orden y la de las alarmas
+- Uso de iconos.
+- Añadir estilos personalizados (ficheros css).
+- Publicar la app en un servidor (https://www.shinyapps.io/).
+
+
+```{r echo=FALSE, warning=FALSE}
+ui<-navbarPage(theme = shinytheme("sandstone"),
+               "App Master Ciencia de datos",
+               tabsetPanel( 
+               tabPanel("Selección de máquina", 
+                        sidebarLayout(
+                          sidebarPanel(
+                            h5("MÁQUINA"),
+                            fileInput("DatosFichero", "Selecciona un fichero", accept = NULL),
+                            uiOutput("Selectmaquina")   
+                          ),
+                          mainPanel(h4("Probabilidad de orden"),
+                                    br(),
+                                    plotOutput("Prob_orden")
+                          ))),
+               navbarMenu("Estado de la máquina",
+                          tabPanel("Evolución temporal alarmas",
+                                   sidebarPanel(
+                                     p("Alarmas RadioButtons"),
+                                     uiOutput("alarmas_radiobuttons")
+                                   ),
+                                   mainPanel(h4("Evolución temporal Alarmas"),
+                                             br(),
+                                             plotOutput("Evolucion_alarmas")
+                                   )
+                          ), 
+                          tabPanel("Registros de la máquina",
+                                   fluidRow(
+                                     
+                                     sidebarPanel(
+                                       p("Alarmas checkbox"),
+                                       uiOutput("alarmas_checkbox"),
+                                       checkboxGroupInput("CheckBoxAlarm", "")
+                                     ),
+                                     mainPanel(h4("Registros de la máquina seleccionada"),
+                                               br(),
+                                               dataTableOutput('tabla'))
+                                     
+                                   )
+                          )
+               ),
+               tabPanel("Estadísticas Globales Temporales", 
+                        sidebarLayout(
+                          sidebarPanel(
+                            h5("PERIODO Y ESTADÍSTICAS
+ ", 
+                            ),dateRangeInput('rango_fechas', label='Selecciona el periodo', start ='2016-01-01', end = '2016-12-31', format = "yyyy-mm-dd", separator= "a", language='es', weekstart=1),
+                            
+                            uiOutput("Select_alarma"),
+                            sliderInput("slider1", label = "Ancho del bin del histograma", 
+                                        min= 1, max = 50, value = 20, step= 1),
+                            h5("BOXPLOT"),
+                            checkboxInput("boton_alarmas","Todas las máquinas")
+                            
+                          ),
+                          mainPanel(h4("Histograma de la alarma seleccionada"),
+                                    br(),
+                                    plotOutput("Histograma"),
+                                    h4("Boxplot de la alarma seleccionada"),
+                                    br(),
+                                    plotOutput("Boxplot"))
+                        )))
+)
+
+server <- function(input, output) { 
+  datos <- reactive({
+    req(input$DatosFichero)
+    name<- load(input$DatosFichero$datapath)
+    data <- eval(parse(text = name))
+    data <- na.omit(data)
+    return(data)
+  })
+  
+  output$Selectmaquina <- renderUI({
+    selectInput("Selectmaquina", "Selecciona máquina", choices = unique(datos()$matricula))
+  })
+  
+  output$alarmas_radiobuttons <- renderUI({
+    radioButtons("alarmas_radiobuttons", "Selecciona la alarma a visualizar", colnames(datos())[5:length(colnames(datos()))-1])
+  })
+  
+  output$alarmas_checkbox <- renderUI({
+    checkboxGroupInput("alarmas_checkbox", "Selecciona las alarmas para ver en la tabla", colnames(datos())[5:length(colnames(datos()))-1],
+                       selected = colnames(datos())[4])
+  })
+  
+  output$Select_alarma <- renderUI({ 
+    selectInput("Select_alarma","Alarma", colnames(datos())[5:length(colnames(datos()))-1]) 
+  })
+  
+  output$Prob_orden <- renderPlot({
+    ggplot(subset(datos(),matricula == input$Selectmaquina), aes(x = dia, y = p_orden,color=p_orden)) +
+      geom_line() +
+      geom_point() +scale_color_gradient(low = "blue", high = "red")+
+      labs(x = "dia", y = "p_orden")
+  })
+  
+  output$Evolucion_alarmas <- renderPlot({
+    ggplot(subset(datos(),matricula == input$Selectmaquina), aes_string(x = 'dia', y = input$alarmas_radiobuttons)) +
+      geom_line() +
+      geom_point() +
+      labs(x = "dia", y = input$alarmas_radiobuttons)
+  })
+  
+  output$Boxplot <- renderPlot({
+    if (!input$boton_alarmas) {
+      data <- subset(datos(), matricula == input$Selectmaquina & dia <= input$rango_fechas[2] & dia >= input$rango_fechas[1])
+      data_y <- data[[input$Select_alarma]]
+      ggplot(data = data, aes(x = factor(matricula), y = data_y)) + 
+        geom_boxplot() +
+        labs(x = "matricula", y = input$Select_alarma)
+    } else {
+      data <- subset(datos(), dia <= input$rango_fechas[2] & dia >= input$rango_fechas[1])
+      data_y <- data[[input$Select_alarma]]
+      ggplot(data = data, aes(x = factor(matricula), y = data_y)) + 
+        geom_boxplot() +
+        labs(x = "matricula", y = input$Select_alarma)
+    }
+  })
+  
+  
+  output$Histograma <- renderPlot({
+    data <- subset(datos(), matricula == input$Selectmaquina & dia >= input$rango_fechas[1] & dia <= input$rango_fechas[2])
+    ggplot(data = data, aes_string(x = input$Select_alarma)) +
+      geom_histogram(binwidth = input$slider1) +
+      labs(x = input$Select_alarma, y = 'count')
+  })
+  
+  output$tabla <- renderDataTable(subset(datos(), matricula == input$Selectmaquina)[c("matricula","dia",input$alarmas_checkbox,"p_orden")])
+  
+}
+
+shinyApp(ui, server)
+```
+
+
+
+
+
+
+
+
+
+
