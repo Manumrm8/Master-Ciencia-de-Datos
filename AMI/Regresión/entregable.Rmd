@@ -1,0 +1,567 @@
+---
+title: "entregable_1"
+author: "Ruben Castillo y Manuel Rubio"
+date: "2023-11-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Ejercicio 1
+Considera la variable respuesta Price relacionandola con la variable X con la que tenga mayor relación lineal
+
+```{r}
+cars <- read.csv2("cars.csv")
+```
+
+```{r}
+cor(subset(cars,select = c(-Type,-Origin)))["Price",]
+```
+
+Con esto se tiene que la variable con la que tiene mayor relacion lineal es Horsepower
+
+*   Evalúa el efecto de X sobre Price.
+
+```{r}
+cor.test(cars$Price,cars$Horsepower)
+
+```
+
+Es una relación lineal positiva, lo que implica que a mayor horsepower mayor es el precio
+
+
+*   Obtén la recta mínimos cuadrados. Interpreta los resultados obtenidos (coeficientes, significatividad, R2, contraste del modelo, etc...).
+
+```{r}
+reg <- lm(Price ~ Horsepower, data=cars)
+summary(reg)
+
+```
+
+
+Se tiene una pendiente de 4.2, que indica que por cada unidad que aumentemos el Horsepower, aumentará en 4.2 su precio. Además se tiene que el pvalor es muy bajo, lo que indica que hay evidencia estadística significativa suficiente para determinar que existe relacion lineal positiva entre las variables.
+
+En cuanto al valor de R squared, se tiene que es de 0.62, que indica la capacidad de ajuste para la variable Precio usando unicamente la variable Horsepower.
+
+Si se representa graficamente, se puede observar el comportamiento anterior
+
+```{r}
+with(cars,plot(Horsepower,Price))
+abline(coef=coefficients(reg),col='RED')
+```
+
+
+
+*    Dibuja el diagrama de dispersión, la recta de regresión y las bandas de confianza al 90 %.
+
+
+```{r}
+plot(cars$Horsepower,cars$Price,xlab='HorsePower',ylab='Price')
+abline(coef = coefficients(reg), lwd=2)
+df <- data.frame(list(Horsepower=cars$Horsepower))
+bandas <- predict(reg, newdata = df, interval = "confidence",level = 0.9)
+lines(cars$Horsepower,bandas[,2],col='BLUE')
+lines(cars$Horsepower,bandas[,3],col='BLUE')
+```
+
+
+*   Realiza un diagnóstico de los residuos. Si falla algunas de las condiciones, busca una posible
+solución.
+
+```{r}
+plot(reg$fitted.values,reg$residuals, col='BLUE',
+     xlab = 'Predichos',ylab = 'Residuos', main = 'Analisis de los residuos')
+abline(h=0,lty=2)
+
+
+#aquí le he metido todos los test que tenemos que hacer (heterocedasticidad, media cero y que sea normal)
+
+mean(reg$residuals)
+
+shapiro.test(reg$residuals)
+```
+
+
+Se puede observar que la media de los residuos es 0, condición que se da de forma matemática. Pero presentan heterocedasticidad, a la vez que el saphiro test indica que no siguen una distribución normal.
+
+
+Como solución se propone aplicar una transformación a la variable horsepower, en este caso en primer lugar se prueba aplicando el logaritmo
+
+
+```{r}
+reg <- lm(log(Price) ~ Horsepower, data=cars)
+plot(reg$fitted.values,reg$residuals, col='BLUE',
+     xlab = 'Predichos',ylab = 'Residuos', main = 'Analisis de los residuos')
+abline(h=0,lty=2)
+
+```
+
+
+Esta transformación, como se observa en la gráfica, es capaz de eliminar la heterocedasticidad.
+
+Ahora vamos a comprobar que sigue una distribución normal:
+
+```{r}
+plot(reg)
+
+shapiro.test(reg$residuals)
+```
+
+Con esto conseguimos normalizar de forma considerable los residuos, pero con un valor rozando el limite de confianza. Por último, quitaría esos 3 outliers que aparecen para terminar de ajustar bien estos.
+
+Antes de eliminarlos, se estudian las posibles causas de su valor para determinar si son coherentes
+
+```{r}
+print("\nOutlier numero 1")
+print(cars[28,])
+print("\nOutlier numero 2")
+print(cars[58,])
+print("\nOutlier numero 3")
+print(cars[59,])
+
+```
+
+
+
+Estos es posible que sean correctos, siendo la información proporcionada por otras variables importante de cara a la predicción del precio en el modelo. Para que no afecte a nuestro modelo, se eliminan estos datos.
+
+```{r}
+
+cars_m1 <- cars[c(-28,-58,-59),]
+
+```
+
+```{r}
+reg <- lm(log(Price) ~ Horsepower, data=cars_m1)
+plot(reg$fitted.values,reg$residuals, col='BLUE',
+     xlab = 'Predichos',ylab = 'Residuos', main = 'Analisis de los residuos')
+abline(h=0,lty=2)
+```
+
+
+```{r}
+plot(reg)
+```
+
+
+
+```{r}
+shapiro.test(reg$residuals)
+```
+
+
+Se obtiene que ahora, de acuerdo con el shapiro test la confianza es mayor para determinar que los errores siguen una muestra normal
+
+
+## Ejercicio 2
+Considera la variable respuesta Price relacionandola con el predictor MPG.city.
+
+* Evalúa el efecto de MPG.city sobre Price
+```{r}
+reg <- lm(Price ~ MPG.city, data=cars)
+cor(cars$MPG.city,cars$Price)
+```
+
+
+Se puede observar que es una relación más o menos a priori inversamente lineal, donde el valor mayor de city decrementa el precio
+
+*   Obtén la recta mínimos cuadrados. Interpreta los resultados obtenidos (coeficientes, significatividad,
+R2, contraste del modelo, etc...).
+
+
+```{r}
+reg <- lm(Price ~ MPG.city, data=cars)
+summary(reg)
+```
+
+Se puede observar que el valor de MPG.city es significativo, ya que además de su pvalor es regresión lineal univariada.
+
+Además se tiene que el modelo es capaz de explicar en un 35% los datos, según su R squared.
+
+
+Esto se puede observar representandolo graficamente, donde se tiene una recta que no se ajusta en gran medida a los datos.
+
+```{r}
+with(cars,plot(MPG.city,Price))
+abline(coef=coefficients(reg),col='RED')
+```
+
+
+
+*   Dibuja el diagrama de dispersión, la recta de regresión y las bandas de predicción al 90 %.
+
+```{r}
+
+plot(cars$MPG.city,cars$Price,xlab='HorsePower',ylab='Price')
+abline(coef = coefficients(reg), lwd=2)
+df <- data.frame(list(MPG.city=cars$MPG.city))
+bandas <- predict(reg, newdata = df, interval = "confidence",level = 0.9)
+lines(cars$MPG.city,bandas[,2],col='BLUE')
+lines(cars$MPG.city,bandas[,3],col='BLUE')
+
+```
+
+
+*   Realiza un análisis de los residuos.
+
+Con el modelo anterior, los residuos se obtienen de la forma
+
+
+```{r}
+
+plot(reg$fitted.values,reg$residuals, col='BLUE',
+     xlab = 'Predichos',ylab = 'Residuos', main = 'Analisis de los residuos')
+abline(h=0,lty=2)
+
+```
+
+
+```{r}
+residuos <- residuals(reg)
+summary(residuos)
+```
+
+Los residuos, como era de esperar quedan centrados en el 0. En este caso parece que existe algo de heterocedasticidad, en especial en los extremos, al estar los valores del centro más pegados a la media.
+
+
+*     ¿Te parece adecuado haber realizado regresión lineal o es preferible otro tipo de regresión?. Ajusta el modelo que te parezca más adecuado.
+
+No, se puede observar que los datos no se relacionan de forma lineal. En primer lugar, se prueba aplicando un logaritmo para estudiar si esto resulta en una relacion lineal de los datos
+
+```{r}
+regre <- lm(Price ~ sqrt(MPG.city), data=cars)
+with(cars,plot(sqrt(MPG.city),(Price),col='BLUE'))
+abline(coef=coefficients(regre),col='RED')
+
+```
+
+```{r}
+residuos <- residuals(regre)
+summary(residuos)
+```
+
+```{r}
+print("Modelo sin transformación")
+summary(reg)
+
+print("\nModelo con transformación")
+summary(regre)
+```
+
+
+Se prueba con otro tipo de transformacion, que ajuste en mejor medida los datos
+```{r}
+regre <- lm(Price ~ log((1/(MPG.city))), data=cars)
+with(cars,plot(log((1/(MPG.city))),(Price),col='BLUE'))
+abline(coef=coefficients(regre),col='RED')
+
+```
+
+
+```{r}
+print("\nModelo con transformación")
+summary(regre)
+```
+
+Se tiene que este modelo tiene mayor caracter explicativo para los datos dados que los dos anteriores. Se intentan realizar alguna mejora para mejorar aun en mayor medida el modelo. Se opta por una eliminacion de los outliers
+
+
+```{r}
+library(car)
+influencePlot(regre)
+summary(influence.measures(regre))
+```
+Se eliminan los 4 datos determinados como significativos de acuerdo a cook
+```{r}
+lm1_sinInfl<-update(regre, data=cars[setdiff(rownames(cars),c("42","39","48","59")),])
+par(mfrow=c(2,2))
+plot(lm1_sinInfl)
+```
+
+Se explora los resultados del modelo
+
+
+```{r}
+print("\nModelo con transformación")
+summary(lm1_sinInfl)
+```
+
+Este modelo, como era de esperar, es mas explicatuvo para el subconjunto de datos que no contienen los outliers. Estudiamos si, con las transformaciones dadas los errores se distribuyen de forma normal
+
+
+
+
+
+```{r}
+ml1 <- lm(Price ~ log((1/(MPG.city))), data= cars)
+res_estandar <- rstandard(ml1)
+res_student <- rstudent(ml1)
+plot(ml1$fitted.values,res_student)
+```
+
+```{r}
+library(MASS)
+ajuste_vol <- lm(Price ~ MPG.city,
+data = cars)
+boxcox(ajuste_vol, lambda = seq(-2,2, length = 10))
+
+
+b<-boxcox(ajuste_vol, lambda = seq(-2,2, length = 10))
+lambda <- b$x[which.max(b$y)]
+ajuste_vol2 <- lm(I((Volume^lambda-1)/lambda) ~ Height, data = trees)
+plot(fitted(ajuste_vol2), rstudent(ajuste_vol2))
+#bptest(ajuste_vol2) 
+
+```
+
+
+
+```{r}
+plot(regre$fitted.values,regre$residuals, col='BLUE',
+     xlab = 'Predichos',ylab = 'Residuos', main = 'Analisis de los residuos')
+abline(h=0,lty=2)
+```
+
+```{r}
+library(lmtest)
+bptest(regre)
+bptest(reg)  
+```
+
+```{r}
+plot(fitted(regre),cooks.distance(regre),main="Distancia de Cook vs fitted")
+abline(h=1,col="red",lwd=1); 
+```
+
+Una posible solucion seria eliminar outliers de acuerdo con la distancia de cook
+
+
+
+
+```{r}
+  library(car)
+  outlierTest(ml1,cutoff=1)
+```
+
+
+
+```{r}
+shapiro.test(regre$residuals)
+```
+
+
+
+Se puede observar que con la transformacion aplicada, el error se ve disminuido, que se explicado por el R squared, pero este sigue siendo malo, ya que al tomar valores discretizados, la regresión lineal no es el mejor modelo para aplicar.
+
+
+*   ¿Qué precio mínimo se espera para aquellos coches con un consumo de 12 litros a los 100 km por
+ciudad? Calcula e interpreta el intervalo de confianza y el de predicción.
+
+Las rectas de los itervalos de predicción y confianza se calculan de la forma
+
+```{r}
+
+plot(cars$MPG.city,cars$Price,xlab='HorsePower',ylab='Price')
+abline(coef = coefficients(reg), lwd=2)
+df <- data.frame(list(MPG.city=cars$MPG.city))
+bandas <- predict(reg, newdata = df, interval = "confidence",level = 0.9)
+lines(cars$MPG.city,bandas[,2],col='BLUE')
+lines(cars$MPG.city,bandas[,3],col='BLUE')
+bandas2 <- predict(reg, newdata = df, interval = "predict",level = 0.9)
+lines(cars$MPG.city,bandas2[,2],col='RED')
+lines(cars$MPG.city,bandas2[,3],col='RED')
+
+```
+
+
+A partir de estas, se puede calcular que para un consumo de 12 L, el intervalo de confianza es:
+```{r}
+df <- data.frame(list(MPG.city=c(12)))
+bandas <- predict(reg, newdata = df, interval = "confidence",level = 0.9)
+bandas2 <- predict(reg, newdata = df, interval = "predict",level = 0.9)
+
+```
+
+
+
+```{r}
+print(bandas)
+```
+Tenemos una confianza del 90% de que el precio mínimo para los coches que consuman 12 L se encuentre entre 27.27 y 32.94
+
+```{r}
+print(bandas2)
+```
+
+Hay una probabilidad del 90% de que el precio mínimo para los coches se encuentre entre 16.81 y 43.38
+
+
+
+## Ejercicio 3
+*   Considerando un tope de 10 variables, encuentra el número óptimo de variables a incluir en un
+modelo predictivo de Price, según los criterios R2, BIC y AIC.
+
+```{r}
+library(leaps)
+modelos_subset <- regsubsets(Price ~ ., data=cars, nvmax=10) 
+resumen <- summary(modelos_subset)
+summary(modelos_subset)
+```
+
+
+Aqui se pueden ver los mejores modelos por número de parámetros que obtiene los modelos con menor error cuadrático medio.
+
+```{r}
+resultado <- cbind(resumen$rsq,resumen$cp,resumen$bic)
+colnames(resultado) <- c('Rsq','Cp','BIC')
+resultado
+```
+
+El mejor modelo considereando r squared es el de 10 variables.
+Comparando los C_p de Mallow y el BIC, donde influye el número de parámetros del modelo, se tiene que el mejor es el que usa 6 parámetros.
+
+
+*   ¿Qué variables incluye el modelo obtenido? (seleccionar el criterio que más te guste). Interpreta
+los coeficientes obtenidos, ¿consideras que tienen sentido?.
+
+
+```{r}
+coef(modelos_subset, id=6)
+
+```
+
+
+*   Selecciona el mejor modelo con el método stepwise.
+
+
+Ajusto todo con todas las variables posibles para el modelo, y posteriormente le aplico stepwise.
+```{r}
+library(ISLR)
+
+modelo_inic <- lm(Price ~ . , data=cars)
+
+traza <- step(modelo_inic, direction = 'both')
+
+```
+
+```{r}
+modelo_inic <- lm(Price ~ 1 , data=cars)
+
+traza <- step(modelo_inic, Price ~ Type + Horsepower + Width  + 
+                Wheelbase + RPM + Origin + EngineSize + Weight +
+                Fuel.tank.capacity + MPG.city  + MPG.highway+ +Passengers+
+                Rev.per.mile+Length ,direction = 'forward')
+```
+
+
+*   Selecciona el mejor modelo con el método stepwise considerando la variable Passengers como
+factor. Contesta a las siguientes preguntas:
+
+```{r}
+modelo_inic <- lm(Price ~ 1 , data=cars)
+
+traza <- step(modelo_inic, Price ~ Type + Horsepower + Width  + 
+                Wheelbase + RPM + Origin + EngineSize + Weight +
+                Fuel.tank.capacity + MPG.city  + MPG.highway+ + as.factor(Passengers)+
+                Rev.per.mile+Length ,direction = 'forward')
+
+```
+
+
+*   ¿Qué% de la varianza de Price explica el modelo?
+```{r}
+modelo <- lm(Price ~  Type + Horsepower + Width  + 
+                Wheelbase + RPM + Origin ,data=cars)
+summary(modelo)
+```
+
+Es capaz de explicar el 76% de la variabilidad de Price
+
+*   ¿Podrías depurar el modelo?
+
+En este caso, parece que la variable Type no es muy util, al tener solo una de sus categorias entre las significativas. Es por ello que, para nuestra depuración del modelo, decidimos eliminarla. 
+
+```{r}
+modelo <- lm(Price ~    Horsepower + Width  + 
+                Wheelbase + RPM + Origin ,data=cars)
+summary(modelo)
+```
+
+Vemos que con este cambio, el r squared no se ve demasiado decrementado.
+
+*   ¿Cuál es el efecto de la variable Origin sobre Price?
+
+```{r}
+reg <- lm(Price ~ Origin, data=cars)
+
+summary(reg)
+```
+
+Por si sola, la variable origin no es capaz de explicar la variable Price, al no ser muy significativo el valor de OriginUSA
+
+
+
+*   ¿Qué modelo de los apartados anteriores es mejor? Con el que te quedes, realiza el diagnóstico
+de tu modelo, sin emprender ninguna acción, e indica los problemas que presenta.
+
+En este caso nos quedamos con el modelo obtenido por stepwise forward
+```{r}
+modelo <- lm(Price ~  Type + Horsepower + Width  + 
+                Wheelbase + RPM + Origin ,data=cars)
+summary(modelo)
+
+```
+
+
+
+
+*   Emprende ahora las acciones que te parezcan oportunas e indica los problemas que has conseguido
+solucionar o mejorar un poco.
+
+De cara a mejorarlo, decidimos probar y unificar las categorias de type que no son significativas, de tal forma que queda un factor que contiene TypeMid y TypeNotMid.
+
+```{r}
+library(dplyr)
+midsize <- cars$Type=="Midsize"
+cars_mod <- cars %>%
+  mutate(Type = if_else(midsize, "Midsize", "notMidsize"))%>%
+  mutate(Type = as.factor(Type))
+
+```
+
+
+```{r}
+modelo <- lm(Price ~  Type + Horsepower + Width  + 
+                Wheelbase + RPM + Origin ,data=cars_mod)
+summary(modelo)
+```
+
+Mejora el r squared ajustado, ya que utiliza menos categorias en la variable categorica sin perder casi información. Además, se peude observar que todas las variables del modelo tomado son significativas.
+
+Por último, visualizamos los outliers de los datos para el modelo
+
+```{r}
+# Cook
+
+plot(fitted(modelo),cooks.distance(modelo),main="Distancia de Cook vs fitted")
+
+```
+
+
+Se puede observar que, usando cook solo encontramos una muestra que se puede considerar outlier
+
+Respecto a la colinealidad del modelo, utilizamos VIF
+
+```{r}
+library(car)
+library(rms)
+rms::vif(modelo)
+```
+
+
+
+
+*   Obtén la predicción del precio para un coche en la mediana de los predictores en el modelo
+escogido. Notar que las variables categóricas se tratan de diferente manera, no hay mediana.
