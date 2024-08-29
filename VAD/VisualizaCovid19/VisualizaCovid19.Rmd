@@ -1,0 +1,291 @@
+---
+title: "VisualizaCovid19"
+author: "Manuel Rubio Martínez"
+date: "2024-05-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Librerías:
+
+```{r}
+if (!require(pacman)) {
+  install.packages("pacman")
+  library(pacman)
+}
+pacman::p_load(readr, sf, plotly, maps, ggplot2, tmap, dplyr, tidyverse, leaflet, shiny, sp,rworldmap,DT)
+```
+
+
+
+
+## Introducción:
+
+Para este trabajo voy a utilizar 2 datasets, el de new_deaths_per_million.csv y new_deaths.csv. Ambos constan de las muertes confirmadas por coronavirus entre 2020 y 2024, el primero ponderado por la población del país, el segundo en bruto. Utilizaré el primero para poder comparar mejor entre países, en cuál había mayor proporción de casos, y el segundo para que quede más claro la cantidad exacta de casos.
+
+```{r}
+df_new_deaths_per_million <- read_csv("https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/cases_deaths/new_deaths_per_million.csv")
+```
+```{r}
+head(df_new_deaths_per_million)
+```
+
+
+```{r}
+df_new_deaths <- read_csv("https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/cases_deaths/new_deaths.csv")
+
+```
+
+
+```{r}
+head(df_new_deaths)
+```
+
+En los 2 dataframes tengo los países en las columnas. Hago un gather para que sea una nueva variable:
+
+```{r}
+df_1 <- df_new_deaths_per_million %>%
+  gather(country, new_deaths_per_million, -date) %>%
+  mutate(date = as.Date(date))
+
+df_2 <- df_new_deaths %>%
+  gather(country, new_deaths, -date) %>%
+  mutate(date = as.Date(date))
+```
+
+Ahora hago un merge
+
+```{r}
+df_deaths <- merge(df_1, df_2, by = c("date", "country"))
+```
+
+
+Sacamos los datos de los polígonos de los países, y nos quedamos con name y con geometry
+
+```{r}
+data(World)
+df_world <- World %>%
+  dplyr::select(name, geometry)
+```
+
+Ahora tenemos que unir los 2 dataframes, para tener el polígono del país en el otro dataframe
+
+```{r}
+df <- left_join(df_world, df_deaths, by = c("name" = "country"))
+```
+
+Cambio el nombre de la variable "name" para que sea country:
+
+```{r}
+df <- df %>%
+  mutate(country = name) %>%
+  select(-name)
+```
+
+
+
+```{r}
+colSums(is.na(df))
+```
+Quitamos los NA para evutar problemas:
+
+```{r}
+df<-na.omit(df)
+colSums(is.na(df))
+```
+
+Ahora viene el gráfico. Voy a ir poniendo las cosas que hay que considerar:
+
+- El mínimo de fecha y el máximo de fecha del slider está claro, pero hay que poner que vaya de 7 en 7 porque los datos están semanalmente.
+
+- Los colores hay que cambiarlos. Si ponemos que se modifiquen cada fecha, entonces puede que salga un país muy rojo porque en ese momento en el era el que tenía la mayor cantidad de casos por millón, aunque tenga pocos casos, y en otro momento con más casos que salga de color más claro porque hay otros países con más casos por millón.
+
+Esto lo voy a arreglar haciendo una paleta fija:
+
+
+```{r}
+maximos_por_pais <- list()
+paises=unique(df$country)
+for (i in paises){
+  maximo<-max(df[df$country==i,]$new_deaths_per_million)
+  maximos_por_pais[[i]] <- maximo
+}
+maximos_por_pais<-unlist(maximos_por_pais)
+```
+
+```{r}
+# Crear el boxplot
+boxplot(maximos_por_pais, 
+        horizontal = TRUE,
+        col = "skyblue",
+        main = "Distribución de los máximos de deaths_per_million",
+        xlab = "Máximos de deaths_per_million")
+```
+
+```{r}
+maximos_df <- data.frame(country = names(maximos_por_pais),
+                         maximo = maximos_por_pais)
+
+# Ordenar el dataframe por el valor máximo
+maximos_df <- maximos_df[order(maximos_df$maximo, decreasing = TRUE), ]
+
+print(maximos_df)
+
+```
+
+El objetivo al final es que nos pinte el mapa de manera homogénea, pero que los outliers no hagan que todo el mapa se vea clarito. Para eso, tendré que establecer un umbral máximo a partir del cual ya el color sea el más oscuro posible. Después de probar varios valores, el cuantil 75 hace que se vean todos bastante bien.
+
+
+```{r}
+maximo_paleta<-quantile(maximos_por_pais,0.75)
+maximo_paleta
+```
+
+
+```{r}
+
+
+paleta_prueba<- colorNumeric(
+      palette = "Reds", 
+      domain = range(0,maximo_paleta)
+    )
+```
+
+
+
+Los datos están de manera semanal, aunque no lo ponga en la bibliografía. Para tener todo más cómodo, los filtro
+
+```{r}
+df=df[df$date %in% seq(min(df$date), max(df$date), by = 7), ]
+```
+
+
+
+
+Esto para las coordenadas del click:
+
+```{r}
+# The single argument to this function, points, is a data.frame in which:
+#   - column 1 contains the longitude in degrees
+#   - column 2 contains the latitude in degrees
+coords2country = function(points)
+{  
+  countriesSP <- getMap(resolution='low')
+
+  pointsSP = SpatialPoints(points, proj4string=CRS(proj4string(countriesSP)))  
+
+  indices = over(pointsSP, countriesSP)
+  indice=indices$ADMIN  
+  if(indice=='United States of America'){
+          indice="United States"
+        }
+        else if(indice=='Republic of Serbia'){
+          indice='Serbia'}
+        else if(indice=='Republic of the Congo'){
+          indice='Congo'
+        }
+        else if(indice=='United Republic of Tanzania'){
+          indice='Tanzania'
+        }
+        else if(indice=="Ivory Coast"){
+          indice="Cote d'Ivoire"
+        }
+        else if(indice=="Guinea Bissau"){
+          indice="Guinea-Bissau"
+        }
+        else if(indice=="French Guiana"){
+          indice="France"
+        }
+        else if(indice=="The Bahamas"){
+          indice="Bahamas"
+        }
+  indice
+}
+```
+
+Hay países que salen con otro nombre, o la Guyana Francesa que en nuestro mapa lo considera Francia.
+
+
+```{r}
+ui <- fluidPage(
+  titlePanel("Mapa de la cantidad de muertes por COVID-19 por país"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("fecha",
+                  "Seleccionar fecha:",
+                  min = min(df$date),
+                  max = max(df$date),
+                  value = min(df$date),
+                  step = 7,
+                  animate = T),
+      dataTableOutput("ranking")
+    ),
+    mainPanel(
+      leafletOutput("mapa"),
+      plotlyOutput("plot")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  selected_country <- reactiveVal(NULL)
+  # Crear el mapa
+  output$mapa <- renderLeaflet({
+    leaflet(data = df[df$date == input$fecha, ]) %>%
+      addProviderTiles(providers$CartoDB.Positron) %>%
+      addPolygons(
+        fillColor = ~paleta_prueba(pmin(df[df$date == input$fecha, ]$new_deaths_per_million, maximo_paleta)),
+        fillOpacity = 0.7,
+        color = "black",
+        weight = 1,
+        popup = ~popup_text()
+      )
+  })
+  
+  # Crear el gráfico dinámico
+  output$plot <- renderPlotly({
+    req(selected_country())
+    plot_data <- df[df$country == selected_country(), ]
+    ggplotly(
+      ggplot(data = plot_data, aes(date, new_deaths)) +
+        geom_line() +
+        labs(x = "Fecha", y = "Nuevas muertes", title = paste("Nuevas muertes en", selected_country()))+
+        geom_vline(xintercept = as.numeric(input$fecha), color = "red", linetype = "dashed", alpha = 0.5)
+    )
+  })
+  
+  # Función para generar el texto del popup
+  popup_text <- reactive({
+    paste("<strong>País:</strong>", df[df$date == input$fecha, ]$country, "<br>",
+          "<strong>Número de casos:</strong>", df[df$date == input$fecha, ]$new_deaths, "<br>",
+          "<strong>Número de casos por millón:</strong>", df[df$date == input$fecha, ]$new_deaths_per_million)
+  })
+  # Sacar el país al que le damos click
+   observeEvent(input$mapa_shape_click, {
+    click <- input$mapa_shape_click
+    if (!is.null(click$lat) && !is.null(click$lng)) {
+      point = data.frame(lon=click$lng, lat=click$lat)
+        pais<-coords2country(point)
+        selected_country(pais)
+        
+    }
+  })
+  # Crear el ranking de países
+  output$ranking <- renderDataTable({
+    df_ranking <- df[df$date == input$fecha,]
+    df_ranking <- df_ranking[order(df_ranking$new_deaths_per_million, decreasing = TRUE),]
+    df_ranking <- data.frame(country=df_ranking$country,new_deaths_per_million=df_ranking$new_deaths_per_million)
+    datatable(df_ranking, options = list(pageLength = 10))
+  })
+  
+}
+shinyApp(ui = ui, server = server)
+
+```
+
+
+

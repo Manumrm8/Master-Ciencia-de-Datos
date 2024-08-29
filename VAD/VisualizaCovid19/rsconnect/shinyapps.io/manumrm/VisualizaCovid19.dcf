@@ -1,0 +1,12 @@
+name: VisualizaCovid19
+title: VisualizaCovid19
+username: manumrm
+account: manumrm
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11985783
+bundleId: 8605931
+url: https://manumrm.shinyapps.io/VisualizaCovid19/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
