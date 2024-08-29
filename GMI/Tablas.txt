@@ -1,0 +1,27 @@
+CREATE TABLE `coches` (
+  `num_bastidor` int NOT NULL,
+  `equipamiento` char(1),
+  `marca` varchar(20) NOT NULL,
+  `modelo` varchar(20) NOT NULL,
+  `fecha_entrada` varchar(20),
+  PRIMARY KEY (`num_bastidor`)
+);
+
+CREATE TABLE `usuarios` (
+  `dni_comprador` varchar(20) NOT NULL,
+  `nombre` varchar(20),
+  `apellidos` varchar(20),
+  `profesion` varchar(20),
+  PRIMARY KEY (`dni_comprador`)
+);
+
+
+CREATE TABLE `ventas` (
+  `dni_comprador` varchar(20) NOT NULL,
+  `num_bastidor` int NOT NULL,
+  `precio` int,
+  `fecha_venta` varchar(20),
+  PRIMARY KEY (`dni_comprador`,`num_bastidor`),
+  CONSTRAINT `usuarios_ventas` FOREIGN KEY (`dni_comprador`) REFERENCES `usuarios` (`dni_comprador`),
+  CONSTRAINT `coches_ventas` FOREIGN KEY (`num_bastidor`) REFERENCES `coches` (`num_bastidor`)
+);

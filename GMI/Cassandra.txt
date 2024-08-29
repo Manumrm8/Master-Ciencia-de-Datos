@@ -1,0 +1,414 @@
+EJERCICIO 1. CREAR UN ESPACIO Y UNA TABLA
+
+sudo service cassandra
+cqlsh
+
+
+CREATE KEYSPACE IF NOT EXISTS  killrvideo   WITH replication = {       'class': 'SimpleStrategy',       'replication_factor': 1    };
+
+use killrvideo;
+
+CREATE TABLE tabla_videos (
+video_id timeuuid PRIMARY KEY,
+added_date timestamp,
+description text,
+title text, 
+user_id uuid);
+
+COPY tabla_videos FROM '~/Escritorio/csv/videos.csv' WITH HEADER=true;
+
+SELECT * FROM tabla_videos LIMIT 10;
+
+ video_id                             | added_date                      | description                                                                                                                                                       | title                                                                                             | user_id
+--------------------------------------+---------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------+--------------------------------------
+ 26461a70-14bd-11e5-ad08-8438355b7e3a | 2014-05-07 01:00:00.000000+0000 |       At Comcast we are working on the future of television. Change and innovation are happening more rapidly than ever thanks to the cloud based X1 platform ... |                                             Webinar: Building Blocks for the Future of Television | 10d5c76c-8767-4db3-8050-e19e015b524c
+ 2645e79c-14bd-11e5-a456-8438355b7e3a | 2011-10-21 01:00:00.000000+0000 | DataStax is the developer of DataStax Enterprise, a distributed, scalable, and highly available database platform that delivers optimal performance either on ... |            DataStax Cassandra Tutorials - Understanding partitioning and replication in Cassandra | 10d5c76c-8767-4db3-8050-e19e015b524c
+ 9056808b-ca65-1bfb-9957-3bea148dfdce | 2015-03-09 00:00:02.000000+0000 |         New hire Chip (Chris Hemsworth) learns it's not easy working alongside Lucious (Kenan Thompson), Cookie (Sasheer Zamata), Jamal (Jay Pharoah), Hakeem ... |                                                                                Empire Promo - SNL | 220077ff-be79-4f20-8603-1b9c97dbafa6
+ 264601a3-14bd-11e5-8c2e-8438355b7e3a | 2011-12-30 01:00:00.000000+0000 |         Tyler Hobbs - Flexibility: Python Clients for Apache Cassandra DataStax, the commercial leader in Apache Cassandra, along with the NYC Cassandra User ... |                Cassandra NYC 2011: Tyler Hobbs - Flexibility: Python Clients for Apache Cassandra | 10d5c76c-8767-4db3-8050-e19e015b524c
+
+
+SELECT COUNT(*) FROM tabla_videos;
+
+ count
+-------
+   430
+
+
+SELECT * FROM tabla_videos
+WHERE title='Become An Internet Enterprise'; (no deja, pide permitir el filtrado)
+
+SELECT * FROM tabla_videos
+WHERE title='Become An Internet Enterprise' ALLOW FILTERING;
+
+ video_id                             | added_date                      | description                                                                                                                                                 | title                         | user_id
+--------------------------------------+---------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------+--------------------------------------
+ 53b1f2db-90c3-148b-8adb-7aa2664ed1d7 | 2015-03-21 08:00:02.000000+0000 | Today's radically connected world needs a revolutionary new technology. DataStax can help you infuse the same data-driven DNA as Google and Amazon into ... | Become An Internet Enterprise | 451735e5-c24c-4335-ab3e-a2bc6e2a629e
+ 2645ebb8-14bd-11e5-a919-8438355b7e3a | 2014-08-18 01:00:00.000000+0000 | Today's radically connected world needs a revolutionary new technology. DataStax can help you infuse the same data-driven DNA as Google and Amazon into ... | Become An Internet Enterprise | 10d5c76c-8767-4db3-8050-e19e015b524c
+
+
+SELECT * FROM videos_by_title_year
+WHERE title='What is DataStax Enterprise?';
+
+ title                        | added_year | added_date                      | description                                                                                                                                                   | user_id                              | video_id
+------------------------------+------------+---------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------+--------------------------------------
+ What is DataStax Enterprise? |       2012 | 2012-04-16 01:00:00.000000+0000 |   DataStax offers products and services based on the popular open-source database, Apache Cassandra that solve today's most challenging big data problems ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 2645f1bd-14bd-11e5-af1a-8438355b7e3a
+ What is DataStax Enterprise? |       2013 | 2013-07-18 01:00:00.000000+0000 | Keep your customers. And keep them online and happy. DataStax Enterprise, powered by Apache Cassandra(), certified for production, lets you leverage your ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 26460bd1-14bd-11e5-ac3d-8438355b7e3a
+
+
+SELECT * FROM videos_by_title_year
+WHERE added_year=2013 ALLOW FILTERING;
+
+ title                                                                           | added_year | added_date                      | description                                                                                                                                                       | user_id                              | video_id
+---------------------------------------------------------------------------------+------------+---------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------+--------------------------------------
+                                                              DataStax DevCenter |       2013 | 2013-10-16 01:00:00.000000+0000 |          DataStax DevCenter is a free visual query tool for developers and administrators for creating and running Cassandra Query Language (CQL) queries and ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 2645ed97-14bd-11e5-8a40-8438355b7e3a
+                                                             Big Data Challenges |       2013 | 2013-02-24 01:00:00.000000+0000 |                                                                                                                                                              null | 10d5c76c-8767-4db3-8050-e19e015b524c | 2645f107-14bd-11e5-9321-8438355b7e3a
+                                             What's New: DataStax Enterprise 3.0 |       2013 | 2013-02-24 01:00:00.000000+0000 |                Learn more about the latest release from DataStax, the commercial enterprise powered by Cassandra: DataStax Enterprise 3.0, featuring the most ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 264623ba-14bd-11e5-bbf5-8438355b7e3a
+                                      Customer Success Story: HealthCare Anytime |       2013 | 2013-02-25 01:00:00.000000+0000 |                                                                                                                                                              null | 10d5c76c-8767-4db3-8050-e19e015b524c | 26462330-14bd-11e5-98a5-8438355b7e3a
+                                DataStax Enterprise: Security for the Enterprise |       2013 | 2013-09-11 01:00:00.000000+0000 |                                                                                                                 DataStax Enterprise: Security for the Enterprise. | 10d5c76c-8767-4db3-8050-e19e015b524c | 264626bd-14bd-11e5-87c8-8438355b7e3a
+              Data Modelers Still Have Jobs: Adjusting For the NoSQL Environment |       2013 | 2013-06-25 01:00:00.000000+0000 | Data modeling emerged in the 1970's in response to the needs of database designers. This accident of history has influenced perceptions and practices of data ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 2646094a-14bd-11e5-b26c-8438355b7e3a
+                              Customer Testimonial: Christos Kalantzis (Netflix) |       2013 | 2013-03-17 01:00:00.000000+0000 |                                                                                                                                                              null | 10d5c76c-8767-4db3-8050-e19e015b524c | 2645f95c-14bd-11e5-953f-8438355b7e3a
+                                                              DataStax OpsCenter |       2013 | 2013-11-20 01:00:00.000000+0000 |         DataStax OpsCenter makes it easy to manage Cassandra and DataStax Enterprise clusters. It allows administrators, architects and developers to manage, ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 26460b33-14bd-11e5-9d54-8438355b7e3a
+                                        How to Tell if Your Business Needs NoSQL |       2013 | 2013-05-01 01:00:00.000000+0000 |   Expert IT analyst groups like Wikibon forecast that NoSQL database usage will grow at a compound rate of 60% each year for the next five years, and Gartner ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 264612d1-14bd-11e5-bd8d-8438355b7e3a
+                     Don't Let Your Shoppers Drop; 5 Rules for Today's eCommerce |       2013 | 2013-08-16 01:00:00.000000+0000 |               The definition of eCommerce has totally changed, expanding from a purely retail perspective to mean the place where your customers meet you online. | 10d5c76c-8767-4db3-8050-e19e015b524c | 264630e6-14bd-11e5-ac72-8438355b7e3a
+   Webinar: How Much Money Do You Lose Every Time Your Ecommerce Site Goes Down? |       2013 | 2013-09-13 01:00:00.000000+0000 | In today's environment, you must serve your customers with uptime (all the time) availability, plus hidden benefits like state-of-the-art fraud detection and ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 26462a0f-14bd-11e5-89a8-8438355b7e3a
+                                                 DataStax - A Short Introduction |       2013 | 2013-03-17 01:00:00.000000+0000 |                                                                                                                                                              null | 10d5c76c-8767-4db3-8050-e19e015b524c | 2645f7de-14bd-11e5-855e-8438355b7e3a
+ Webinar: 'Secret Sauce' - How Allied Payment Innovates with DataStax Enterprise |       2013 | 2013-11-25 01:00:00.000000+0000 |            Allied Payment Network is a visionary and innovative company that applies emerging bill pay technologies for the financial industry and its customers. | 10d5c76c-8767-4db3-8050-e19e015b524c | 26462299-14bd-11e5-82d2-8438355b7e3a
+                                Cassandra Community Webinar | Data Model on Fire |       2013 | 2013-12-18 01:00:00.000000+0000 |           Functional data models are great, but how can you squeeze out more performance and make them awesome? Let's talk through some example Cassandra 2.0 ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 264602f5-14bd-11e5-b1de-8438355b7e3a
+                                                    What is DataStax Enterprise? |       2013 | 2013-07-18 01:00:00.000000+0000 |     Keep your customers. And keep them online and happy. DataStax Enterprise, powered by Apache Cassandra(), certified for production, lets you leverage your ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 26460bd1-14bd-11e5-ac3d-8438355b7e3a
+
+
+
+
+
+EJERCICIO 2. TABLAS CON CLAVE COMPUESTA
+
+CREATE TABLE videos_by_title_year (
+title text ,
+added_year int ,
+added_date timestamp,
+Description text,
+user_id uuid,
+video_id uuid,
+PRIMARY KEY (title, added_year)
+);
+
+COPY videos_by_title_year FROM '~/Escritorio/csv/videos_by_title_year.csv' WITH HEADER=true;
+
+SELECT * FROM videos_by_title_year
+WHERE title='What is DataStax Enterprise?' AND added_year=2013;
+
+title                        | added_year | added_date                      | description                                                                                                                                                   | user_id                              | video_id
+------------------------------+------------+---------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------+--------------------------------------
+ What is DataStax Enterprise? |       2013 | 2013-07-18 01:00:00.000000+0000 | Keep your customers. And keep them online and happy. DataStax Enterprise, powered by Apache Cassandra(), certified for production, lets you leverage your ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 26460bd1-14bd-11e5-ac3d-8438355b7e3a
+
+
+
+CREATE TABLE videos_by_title_year (
+title text ,
+added_year int ,
+added_date timestamp,
+Description text,
+user_id uuid,
+video_id uuid,
+PRIMARY KEY ((title, added_year))
+);
+
+COPY videos_by_title_year FROM '~/Escritorio/csv/videos_by_title_year.csv' WITH HEADER=true;
+
+SELECT * FROM videos_by_title_year
+WHERE title='What is DataStax Enterprise?' AND added_year=2013;
+
+title                        | added_year | added_date                      | description                                                                                                                                                   | user_id                              | video_id
+------------------------------+------------+---------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------+--------------------------------------
+ What is DataStax Enterprise? |       2013 | 2013-07-18 01:00:00.000000+0000 | Keep your customers. And keep them online and happy. DataStax Enterprise, powered by Apache Cassandra(), certified for production, lets you leverage your ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 26460bd1-14bd-11e5-ac3d-8438355b7e3a
+
+
+
+SELECT * FROM videos_by_title_year
+WHERE title='What is DataStax Enterprise?' ALLOW FILTERING;
+
+title                        | added_year | added_date                      | description                                                                                                                                                   | user_id                              | video_id
+------------------------------+------------+---------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------+--------------------------------------
+ What is DataStax Enterprise? |       2012 | 2012-04-16 01:00:00.000000+0000 |   DataStax offers products and services based on the popular open-source database, Apache Cassandra that solve today's most challenging big data problems ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 2645f1bd-14bd-11e5-af1a-8438355b7e3a
+ What is DataStax Enterprise? |       2013 | 2013-07-18 01:00:00.000000+0000 | Keep your customers. And keep them online and happy. DataStax Enterprise, powered by Apache Cassandra(), certified for production, lets you leverage your ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 26460bd1-14bd-11e5-ac3d-8438355b7e3a
+
+
+
+SELECT * FROM videos_by_title_year
+WHERE added_year=2013 ALLOW FILTERING;
+
+
+En el segundo caso no me deja filtrar usando solo la columna title.
+
+title                                                                           | added_year | added_date                      | description                                                                                                                                                       | user_id                              | video_id
+---------------------------------------------------------------------------------+------------+---------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------+--------------------------------------
+                                DataStax Enterprise: Security for the Enterprise |       2013 | 2013-09-11 01:00:00.000000+0000 |                                                                                                                 DataStax Enterprise: Security for the Enterprise. | 10d5c76c-8767-4db3-8050-e19e015b524c | 264626bd-14bd-11e5-87c8-8438355b7e3a
+   Webinar: How Much Money Do You Lose Every Time Your Ecommerce Site Goes Down? |       2013 | 2013-09-13 01:00:00.000000+0000 | In today's environment, you must serve your customers with uptime (all the time) availability, plus hidden benefits like state-of-the-art fraud detection and ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 26462a0f-14bd-11e5-89a8-8438355b7e3a
+                              Customer Testimonial: Christos Kalantzis (Netflix) |       2013 | 2013-03-17 01:00:00.000000+0000 |                                                                                                                                                              null | 10d5c76c-8767-4db3-8050-e19e015b524c | 2645f95c-14bd-11e5-953f-8438355b7e3a
+                                             What's New: DataStax Enterprise 3.0 |       2013 | 2013-02-24 01:00:00.000000+0000 |                Learn more about the latest release from DataStax, the commercial enterprise powered by Cassandra: DataStax Enterprise 3.0, featuring the most ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 264623ba-14bd-11e5-bbf5-8438355b7e3a
+                                                             Big Data Challenges |       2013 | 2013-02-24 01:00:00.000000+0000 |                                                                                                                                                              null | 10d5c76c-8767-4db3-8050-e19e015b524c | 2645f107-14bd-11e5-9321-8438355b7e3a
+              Data Modelers Still Have Jobs: Adjusting For the NoSQL Environment |       2013 | 2013-06-25 01:00:00.000000+0000 | Data modeling emerged in the 1970's in response to the needs of database designers. This accident of history has influenced perceptions and practices of data ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 2646094a-14bd-11e5-b26c-8438355b7e3a
+ Webinar: 'Secret Sauce' - How Allied Payment Innovates with DataStax Enterprise |       2013 | 2013-11-25 01:00:00.000000+0000 |            Allied Payment Network is a visionary and innovative company that applies emerging bill pay technologies for the financial industry and its customers. | 10d5c76c-8767-4db3-8050-e19e015b524c | 26462299-14bd-11e5-82d2-8438355b7e3a
+                                                 DataStax - A Short Introduction |       2013 | 2013-03-17 01:00:00.000000+0000 |                                                                                                                                                              null | 10d5c76c-8767-4db3-8050-e19e015b524c | 2645f7de-14bd-11e5-855e-8438355b7e3a
+                                                              DataStax OpsCenter |       2013 | 2013-11-20 01:00:00.000000+0000 |         DataStax OpsCenter makes it easy to manage Cassandra and DataStax Enterprise clusters. It allows administrators, architects and developers to manage, ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 26460b33-14bd-11e5-9d54-8438355b7e3a
+                                                              DataStax DevCenter |       2013 | 2013-10-16 01:00:00.000000+0000 |          DataStax DevCenter is a free visual query tool for developers and administrators for creating and running Cassandra Query Language (CQL) queries and ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 2645ed97-14bd-11e5-8a40-8438355b7e3a
+                                      Customer Success Story: HealthCare Anytime |       2013 | 2013-02-25 01:00:00.000000+0000 |                                                                                                                                                              null | 10d5c76c-8767-4db3-8050-e19e015b524c | 26462330-14bd-11e5-98a5-8438355b7e3a
+                                                    What is DataStax Enterprise? |       2013 | 2013-07-18 01:00:00.000000+0000 |     Keep your customers. And keep them online and happy. DataStax Enterprise, powered by Apache Cassandra(), certified for production, lets you leverage your ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 26460bd1-14bd-11e5-ac3d-8438355b7e3a
+                                        How to Tell if Your Business Needs NoSQL |       2013 | 2013-05-01 01:00:00.000000+0000 |   Expert IT analyst groups like Wikibon forecast that NoSQL database usage will grow at a compound rate of 60% each year for the next five years, and Gartner ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 264612d1-14bd-11e5-bd8d-8438355b7e3a
+                     Don't Let Your Shoppers Drop; 5 Rules for Today's eCommerce |       2013 | 2013-08-16 01:00:00.000000+0000 |               The definition of eCommerce has totally changed, expanding from a purely retail perspective to mean the place where your customers meet you online. | 10d5c76c-8767-4db3-8050-e19e015b524c | 264630e6-14bd-11e5-ac72-8438355b7e3a
+                                Cassandra Community Webinar | Data Model on Fire |       2013 | 2013-12-18 01:00:00.000000+0000 |           Functional data models are great, but how can you squeeze out more performance and make them awesome? Let's talk through some example Cassandra 2.0 ... | 10d5c76c-8767-4db3-8050-e19e015b524c | 264602f5-14bd-11e5-b1de-8438355b7e3a
+
+
+
+
+
+
+EJERCICIO 3. COLUMNAS DE AGRUPACIÓN
+
+CREATE TABLE videos_by_tag_year (
+tag text,
+added_year int,
+video_id timeuuid,
+added_date timestamp,
+description text,
+title text,
+user_id uuid,
+PRIMARY KEY ((tag), added_year, video_id)
+) WITH CLUSTERING ORDER BY (added_year desc, video_id asc);
+
+COPY videos_by_tag_year FROM '~/Escritorio/csv/videos_by_tag_year.csv' WITH HEADER=true;
+
+SELECT COUNT(*) FROM videos_by_tag_year;
+
+ count
+-------
+   797
+
+
+SELECT * FROM videos_by_tag_year
+WHERE tag='nosql' AND added_year=2012;
+
+tag   | added_year | video_id                             | added_date                      | description                                                                                                                                                       | title                                                                    | user_id
+-------+------------+--------------------------------------+---------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------+--------------------------------------
+ nosql |       2012 | 2646193a-14bd-11e5-ae5b-8438355b7e3a | 2012-10-04 01:00:00.000000+0000 |                 Martin Stone - Deep Visibility into Apache Cassandra with AppDynamics DataStax, the commercial leader in Apache Cassandra, along with the NYC ... | Webinar: Bridging the Great Divide - The Relationship of RDBMS and NoSQL | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2012 | 2646278f-14bd-11e5-88ea-8438355b7e3a | 2012-04-27 01:00:00.000000+0000 |             David Weinstein - Cassandra at Adobe DataStax, the commercial leader in Apache Cassandra, along with the NYC Cassandra User Group, NoSQL NYC, and ... |    Webinar: Top 5 gotchas that prevent NoSQL from meeting business goals | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2012 | 26462f11-14bd-11e5-9739-8438355b7e3a | 2012-09-13 01:00:00.000000+0000 | Chris Burroughs is a developer at Clearspring Technologies where he works on the Data and Analytics team. There he wrestles with the black art of JVM tuning, ... |                            DataStax C*ollege Credit: What and Why NoSQL? | 10d5c76c-8767-4db3-8050-e19e015b524c
+
+SELECT * FROM videos_by_tag_year
+WHERE tag='nosql' AND added_year<2015;
+
+tag   | added_year | video_id                             | added_date                      | description                                                                                                                                                       | title                                                                                | user_id
+-------+------------+--------------------------------------+---------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------+--------------------------------------
+ nosql |       2013 | 2646094a-14bd-11e5-b26c-8438355b7e3a | 2013-06-25 01:00:00.000000+0000 |             Session: Cassandra at Telco Scale - Big Data, Mobile Apps, Optimized Footprint, and A/A Resiliency Speaker: Darshan Rawal (Openwave) Description: ... |                   Data Modelers Still Have Jobs: Adjusting For the NoSQL Environment | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2013 | 264612d1-14bd-11e5-bd8d-8438355b7e3a | 2013-05-01 01:00:00.000000+0000 | As new types of data sources emerge from cloud, mobile devices, social media and machine sensor devices, traditional databases hit the ceiling due to today's ... |                                             How to Tell if Your Business Needs NoSQL | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2012 | 2646193a-14bd-11e5-ae5b-8438355b7e3a | 2012-10-04 01:00:00.000000+0000 |                 Martin Stone - Deep Visibility into Apache Cassandra with AppDynamics DataStax, the commercial leader in Apache Cassandra, along with the NYC ... |             Webinar: Bridging the Great Divide - The Relationship of RDBMS and NoSQL | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2012 | 2646278f-14bd-11e5-88ea-8438355b7e3a | 2012-04-27 01:00:00.000000+0000 |             David Weinstein - Cassandra at Adobe DataStax, the commercial leader in Apache Cassandra, along with the NYC Cassandra User Group, NoSQL NYC, and ... |                Webinar: Top 5 gotchas that prevent NoSQL from meeting business goals | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2012 | 26462f11-14bd-11e5-9739-8438355b7e3a | 2012-09-13 01:00:00.000000+0000 | Chris Burroughs is a developer at Clearspring Technologies where he works on the Data and Analytics team. There he wrestles with the black art of JVM tuning, ... |                                        DataStax C*ollege Credit: What and Why NoSQL? | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2011 | 2646261e-14bd-11e5-8ea7-8438355b7e3a | 2011-12-15 01:00:00.000000+0000 |                                                                                                                 DataStax Enterprise: Security for the Enterprise. | Webinar (Geeknet): Apache Cassandra: Real NoSQL Applications in the Enterprise Today | 10d5c76c-8767-4db3-8050-e19e015b524c
+
+
+SELECT * FROM videos_by_tag_year
+WHERE tag='nosql';
+
+tag   | added_year | video_id                             | added_date                      | description                                                                                                                                                       | title                                                                                              | user_id
+-------+------------+--------------------------------------+---------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------+--------------------------------------
+ nosql |       2015 | cee6451f-ca8e-10bb-93ab-c6ee0b7bbc9d | 2015-04-04 16:00:01.000000+0000 |          A performance art group presents a theatrical piece about society, consumerism and blows to the groin.nnWatch more Key & Peele: http://on.cc.com/1BhjMev | UPDATE MY DRIVERS registration key serial free ! Smart Tweak UpdateMyDrivers 7.0 keygen code crack | 6a9b076e-9972-45d6-8864-199006a0f2b0
+ nosql |       2015 | 33811f55-d3ed-1125-8d47-ab34381d9f1e | 2015-03-22 16:00:01.000000+0000 |  As new types of data sources emerge from cloud, mobile devices, social media and machine sensor devices, traditional databases hit the ceiling due to today's... |                                                          12 Monkeys Season 1 Episode 8 Yesterday"" | 5b65a203-59bb-4b0a-8d51-b06883adf44c
+ nosql |       2015 | ece87a83-2cb0-114c-b15a-40e5aa301a7d | 2015-04-05 08:00:01.000000+0000 |             Speaker: Luke Tillman Company: DataStax You've heard the talks, followed the tutorials, and done the research. You are a font of Cassandra knowledge. |                                                                            The Walking Dead Keygen | aecbe17d-e0b6-4acb-9ae4-65e2ecce9c55
+ nosql |       2015 | 4044d4e5-938a-116f-8f07-62a884418ef2 | 2015-02-27 16:00:01.000000+0000 |         Inspired by Starbucks's Race Together campaign, Pepboys launches its own initiative to encourage employees and customers to discuss gender and sexual ... |                                 Javantura v2 - Data modeling with Apache Cassandra - Marko Švaljek | c6e23bb4-9aa3-4172-9655-04e99bb9d863
+ nosql |       2015 | f175c439-ae48-119a-9b69-75486f0d8eaa | 2015-03-26 16:00:09.000000+0000 |                                                                                                                                                              null |                                                  Data Exposed: An Introduction to Azure DocumentDB | d639858a-eacb-4669-a4e2-295b269b2b11
+ nosql |       2015 | ed78be0b-f379-1265-be8b-3f167506795f | 2015-02-09 08:00:01.000000+0000 |     Koko WatchOut (Dwayne Johnson) gets a little too personal while trash talking opponent Trashyard Mutt (Bobby Moynihan) during a promo shoot. Download the ... |                            ING: Apache Cassandra at ING — Testing the Waters Consistency Required! | aecbe17d-e0b6-4acb-9ae4-65e2ecce9c55
+ nosql |       2015 | ff98843a-2212-155c-8a40-997d56bb9ca6 | 2015-04-10 00:00:02.000000+0000 |                                                                                                                                               Cassandra C# driver |                                                                             Hadoop Configuration 1 | 48fc0c81-7d52-48e5-a366-f2032ed61dc5
+ nosql |       2015 | d5b77780-402a-1862-a685-453917b3b804 | 2015-04-13 00:00:04.000000+0000 |                            This video introduces Azure Search, a fully managed full-text search service in Microsoft Azure. Learn more here: http://po.st/Ns3Ksi. |                         Cassandra Day Atlanta 2015: Getting Started with Apache Cassandra & Python | abfa8763-1af0-46cd-aaf8-627dcca9ae14
+ nosql |       2015 | fa1875d6-07f9-18db-89a1-cfc3b9560d91 | 2015-02-21 08:00:00.000000+0000 | Speaker: Alex Bordei, Product Manager at BigStep We all know Cassandra is supposed to scale but what is its exact scaling pattern? How much faster does it ge ... |                                        Debit Air Bengawan Solo Normal, Warga Diminta Tetap Waspada | 12a2edd0-85cc-4b16-9c75-7830f1bede52
+ nosql |       2015 | 89d261cd-35d3-193d-81bf-20004c2db353 | 2015-01-20 08:00:00.000000+0000 |                                                                                                                                                              null |                                     Ladies Who Code Manchester: Cassandra - A Distributed Database | 711d4bf4-6d09-466d-894e-9b5d0ee97b45
+ nosql |       2015 | e4645b16-1d9d-19f5-9743-6b70124e16d9 | 2015-04-18 16:00:03.000000+0000 | Part One of Two! We are excited to be collaborating closely with Docker in Azure. In this two part video, Corey explains the exciting details of our partnership! |                                     Cassandra Day Atlanta 2015: BetterCloud - Cassandra Case Study | 7e40fc90-7c9a-4e5b-8d2d-f01878402eae
+ nosql |       2015 | 57b2d693-ffae-1a23-938d-f7ed607a1142 | 2015-04-11 00:00:05.000000+0000 |    When Cookie Lyon (Taraji P. Henson) visits Sesame Street, chaos ensues. Subscribe to the SNL channel for more clips: http://goo.gl/24RRTv Download the SNL ... |                                                                       Understanding Hadoop Cluster | 81f92e3e-c627-4c97-8179-6f8c5ded5f98
+ nosql |       2015 | 2300078f-52d5-1c04-bf29-958a1016396b | 2015-04-07 00:00:04.000000+0000 |              Subscribe to TRAILERS: http://bit.ly/sxaw6h Subscribe to COMING SOON: http://bit.ly/H2vZUn Like us on FACEBOOK: http://goo.gl/dHs73 Follow us on ... |                       License crack patch key keygen serial Paretologic PC Health Advisor 3.1.0.23 | 2bec47a4-a565-4ad6-a4ae-6e451b99d2fd
+ nosql |       2015 | 09aa7d61-a1cb-1c55-b5c5-c775820ab035 | 2015-04-21 16:00:08.000000+0000 |                   YouTube Music Awards, Charli XCX, Famous, Eric Wareheim, YouTube Music, YouTube Awards, Music Awards, YTMA, YTMA 2015, YouTube Music Awards ... |                                                                             Cassandra Gets Graphic | 9e75adbb-8150-46ae-82ee-75bad00f51a9
+ nosql |       2015 | b395ba57-39eb-1cbf-8a9b-08003df33121 | 2015-04-11 16:00:05.000000+0000 |                                                                                                                                                 Funny Cat Videos. |                                                                                Hadoop Server Roles | d1f882ad-72d7-44bc-b0d5-489922da7399
+ nosql |       2015 | 9abb99e7-5667-1cfc-8158-493868f24ee6 | 2015-04-21 16:00:58.000000+0000 |        Looking to strengthen your expertise of Cassandra and DataStax Enterprise? This DataStax Training Webinar will arm you with the knowledge and hands-on ... |                                                                                       what is HDFS | b49206fd-e5b7-49a9-962a-4cf62a3634d9
+ nosql |       2015 | 0e7fcb21-562f-1d35-a47e-f36b9ca5c269 | 2015-04-24 16:00:00.000000+0000 |              Subscribe to TRAILERS: http://bit.ly/sxaw6h Subscribe to COMING SOON: http://bit.ly/H2vZUn Like us on FACEBOOK: http://goo.gl/dHs73 Follow us on ... |           Webinar: Don't get caught in a PCI pickle: Meet compliance and protect payment card data | 86ebdb35-5932-4a79-96ed-b701ee514f57
+ nosql |       2015 | 2b995f13-c632-1e93-85a4-67acaacb6cd9 | 2015-04-21 08:00:01.000000+0000 |                                                                                This week, Corey talks about all the exciting announcements made at TechEd Europe! |                                               Steam Wallet Hack Free Download UPDATE WORKING APRIL | a4fc9f94-cede-40c0-9d92-6a5fea639244
+ nosql |       2013 | 2646094a-14bd-11e5-b26c-8438355b7e3a | 2013-06-25 01:00:00.000000+0000 |             Session: Cassandra at Telco Scale - Big Data, Mobile Apps, Optimized Footprint, and A/A Resiliency Speaker: Darshan Rawal (Openwave) Description: ... |                                 Data Modelers Still Have Jobs: Adjusting For the NoSQL Environment | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2013 | 264612d1-14bd-11e5-bd8d-8438355b7e3a | 2013-05-01 01:00:00.000000+0000 | As new types of data sources emerge from cloud, mobile devices, social media and machine sensor devices, traditional databases hit the ceiling due to today's ... |                                                           How to Tell if Your Business Needs NoSQL | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2012 | 2646193a-14bd-11e5-ae5b-8438355b7e3a | 2012-10-04 01:00:00.000000+0000 |                 Martin Stone - Deep Visibility into Apache Cassandra with AppDynamics DataStax, the commercial leader in Apache Cassandra, along with the NYC ... |                           Webinar: Bridging the Great Divide - The Relationship of RDBMS and NoSQL | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2012 | 2646278f-14bd-11e5-88ea-8438355b7e3a | 2012-04-27 01:00:00.000000+0000 |             David Weinstein - Cassandra at Adobe DataStax, the commercial leader in Apache Cassandra, along with the NYC Cassandra User Group, NoSQL NYC, and ... |                              Webinar: Top 5 gotchas that prevent NoSQL from meeting business goals | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2012 | 26462f11-14bd-11e5-9739-8438355b7e3a | 2012-09-13 01:00:00.000000+0000 | Chris Burroughs is a developer at Clearspring Technologies where he works on the Data and Analytics team. There he wrestles with the black art of JVM tuning, ... |                                                      DataStax C*ollege Credit: What and Why NoSQL? | 10d5c76c-8767-4db3-8050-e19e015b524c
+ nosql |       2011 | 2646261e-14bd-11e5-8ea7-8438355b7e3a | 2011-12-15 01:00:00.000000+0000 |                                                                                                                 DataStax Enterprise: Security for the Enterprise. |               Webinar (Geeknet): Apache Cassandra: Real NoSQL Applications in the Enterprise Today | 10d5c76c-8767-4db3-8050-e19e015b524c
+
+
+
+
+SELECT * FROM videos_by_tag_year
+WHERE added_year<=2014 AND added_year>=2010 ALLOW FILTERING;
+
+ tag                   | added_year | video_id                             | added_date                      | description                                                                                                                                                                                                       | title                                                                                             | user_id
+-----------------------+------------+--------------------------------------+---------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------+--------------------------------------
+               node.js |       2012 | 2645f570-14bd-11e5-bab9-8438355b7e3a | 2012-08-17 01:00:00.000000+0000 |                                                 DataStax is the developer of DataStax Enterprise, a distributed, scalable, and highly available database platform that delivers optimal performance either on ... |               C* 2012: Lightning Talk #10 - Node.js and Cassandra (Russell Bradbury, SimpleReach) | 10d5c76c-8767-4db3-8050-e19e015b524c
+                  solr |       2012 | 2645f6a6-14bd-11e5-bbaa-8438355b7e3a | 2012-08-20 01:00:00.000000+0000 |                                             Stop writing monolithic web applications that are complex and inflexible! It's time to break everything apart into independently deployable services that make it ... |                             C* 2012: Changing the Game Cassandra + Solr (Matt Stump, SourceNinja) | 10d5c76c-8767-4db3-8050-e19e015b524c
+                  solr |       2012 | 2645fdc5-14bd-11e5-bb31-8438355b7e3a | 2012-08-20 01:00:00.000000+0000 |                                                                                                               Session: Lightning Talk #9 - How to write SQL Against Apache Cassandra Speaker: Peter Evans (Quest) |            C* 2012: Technical Deep Dive: Cassandra + Solr (Jason Rutherglen, Think Big Analytics) | 10d5c76c-8767-4db3-8050-e19e015b524c
+            cat videos |       2014 | 6c4cffb9-0dc4-1d59-af24-c960b5fc3652 | 2014-11-06 01:11:50.000000+0000 |                                     Carlito tries to show the members of his gang how wild and crazy he can be after a new initiate is labeled the loco one.\nnWatch more Key & Peele: http://on.cc.com/1FOng7W"" |                       Cassandra Day Denver 2014: A Cassandra Data Model for Serving up Cat Videos | fd3f7889-fc0c-43db-951c-7b77710898bc
+             Cassandra |       2014 | 7372dd78-f207-1abe-b16d-0715d707cf31 | 2014-11-05 16:13:05.000000+0000 |                                                                           Saturday Night Live celebrates 40 years of laughs! Get more SNL on Hulu Plus: http://www.hulu.com/saturday-night-live Get more SNL: ... |                                                                                 Datasax C# Driver | b2b3f953-60df-4aa4-b374-eee689f54318
+                 nosql |       2013 | 2646094a-14bd-11e5-b26c-8438355b7e3a | 2013-06-25 01:00:00.000000+0000 |                                                             Session: Cassandra at Telco Scale - Big Data, Mobile Apps, Optimized Footprint, and A/A Resiliency Speaker: Darshan Rawal (Openwave) Description: ... |                                Data Modelers Still Have Jobs: Adjusting For the NoSQL Environment | 10d5c76c-8767-4db3-8050-e19e015b524c
+                 nosql |       2013 | 264612d1-14bd-11e5-bd8d-8438355b7e3a | 2013-05-01 01:00:00.000000+0000 |                                                 As new types of data sources emerge from cloud, mobile devices, social media and machine sensor devices, traditional databases hit the ceiling due to today's ... |                                                          How to Tell if Your Business Needs NoSQL | 10d5c76c-8767-4db3-8050-e19e015b524c
+                 nosql |       2012 | 2646193a-14bd-11e5-ae5b-8438355b7e3a | 2012-10-04 01:00:00.000000+0000 |                                                                 Martin Stone - Deep Visibility into Apache Cassandra with AppDynamics DataStax, the commercial leader in Apache Cassandra, along with the NYC ... |                          Webinar: Bridging the Great Divide - The Relationship of RDBMS and NoSQL | 10d5c76c-8767-4db3-8050-e19e015b524c
+                 nosql |       2012 | 2646278f-14bd-11e5-88ea-8438355b7e3a | 2012-04-27 01:00:00.000000+0000 |                                                             David Weinstein - Cassandra at Adobe DataStax, the commercial leader in Apache Cassandra, along with the NYC Cassandra User Group, NoSQL NYC, and ... |                             Webinar: Top 5 gotchas that prevent NoSQL from meeting business goals | 10d5c76c-8767-4db3-8050-e19e015b524c
+                 nosql |       2012 | 26462f11-14bd-11e5-9739-8438355b7e3a | 2012-09-13 01:00:00.000000+0000 |                                                 Chris Burroughs is a developer at Clearspring Technologies where he works on the Data and Analytics team. There he wrestles with the black art of JVM tuning, ... |                                                     DataStax C*ollege Credit: What and Why NoSQL? | 10d5c76c-8767-4db3-8050-e19e015b524c
+                 nosql |       2011 | 2646261e-14bd-11e5-8ea7-8438355b7e3a | 2011-12-15 01:00:00.000000+0000 |                                                                                                                                                                 DataStax Enterprise: Security for the Enterprise. |              Webinar (Geeknet): Apache Cassandra: Real NoSQL Applications in the Enterprise Today | 10d5c76c-8767-4db3-8050-e19e015b524c
+             opscenter |       2013 | 26460b33-14bd-11e5-9d54-8438355b7e3a | 2013-11-20 01:00:00.000000+0000 |                                                     Keep your customers. And keep them online and happy. DataStax Enterprise, powered by Apache Cassandra(), certified for production, lets you leverage your ... |                                                                                DataStax OpsCenter | 10d5c76c-8767-4db3-8050-e19e015b524c
+             opscenter |       2012 | 2645eed7-14bd-11e5-8e7d-8438355b7e3a | 2012-04-27 01:00:00.000000+0000 |                                                                                                                     Session: Lightning Talk #3 - How to Scale MongoDB Speakers: Ed Anuff and Nate McCall (Apigee) |                                      Cassandra Essentials Tutorials - DataStax OpsCenter Overview | 10d5c76c-8767-4db3-8050-e19e015b524c
+             opscenter |       2011 | 2645e9a3-14bd-11e5-9bc5-8438355b7e3a | 2011-11-01 01:00:00.000000+0000 |                                           DataStax is hiring, Join us! Ready to join a fast paced start-up headquartered in the heart of Silicon Valley? At DataStax we are on the forefront of an incredible ... |                                 DataStax Cassandra Tutorials - Installing Cassandra and OpsCenter | 10d5c76c-8767-4db3-8050-e19e015b524c
+
+(hay más salida)
+
+
+Todas las consultas menos la última las puedes ejecutar al estar utilizando la clave primaria, en cambio en la 3.7 no ya que no estás utilizándola.
+
+SELECT added_year, COUNT(*) AS cantidad FROM videos_by_tag_year
+WHERE tag='nosql'
+GROUP BY added_year;
+
+added_year | cantidad
+------------+----------
+       2015 |       18
+       2013 |        2
+       2012 |        3
+       2011 |        1
+
+
+
+
+
+
+EJERCICIO 4. AÑADIR COLUMNAS Y DEFINIR NUEVOS TIPOS
+
+TRUNCATE tabla_videos;
+
+ALTER TABLE tabla_videos ADD tags SET<TEXT>;
+
+COPY tabla_videos FROM '~/Escritorio/csv/videos_with_tags.csv' WITH HEADER=true;
+
+SELECT tags FROM tabla_videos LIMIT 5;
+
+ tags
+--------------------------------
+       {'cassandra', 'webinar'}
+      {'cassandra', 'tutorial'}
+                        {'snl'}
+        {'cassandra', 'python'}
+ {'saturday night live', 'snl'}
+
+
+
+CREATE TYPE video_encoding (
+encoding TEXT,
+height INT,
+width INT,
+bit_rates SET<TEXT>
+);
+
+ALTER TABLE tabla_videos ADD encoding FROZEN<video_encoding>;
+
+COPY tabla_videos (video_id, encoding) FROM '~/Escritorio/csv/videos_encoding.csv' WITH HEADER=true;
+
+SELECT added_date, tags, encoding FROM tabla_videos
+WHERE title='Getting Started with Spark & Cassandra' ALLOW FILTERING;
+
+added_date                      | tags                      | encoding
+---------------------------------+---------------------------+----------------------------------------------------------------------------------------------------
+ 2014-03-27 08:01:24.000000+0000 | {'cassandra', 'database'} | {encoding: '1080p', height: 1080, width: 1920, bit_rates: {'3000 Kbps', '4500 Kbps', '6000 Kbps'}}
+ 2015-04-01 00:00:02.000000+0000 | {'cassandra', 'database'} | {encoding: '1080p', height: 1080, width: 1920, bit_rates: {'3000 Kbps', '4500 Kbps', '6000 Kbps'}}
+
+
+
+
+EJERCICIO 5. CONTADORES EN CASSANDRA
+
+
+En Cassandra, el tipo de dato counter se utiliza para almacenar un valor numérico que puede ser incrementado (o decrementado) pero no puede ser consultado de manera precisa. Este tipo de dato está diseñado para realizar operaciones de conteo o seguimiento, y es especialmente útil en escenarios donde se necesita llevar la cuenta de eventos o cantidades que pueden cambiar frecuentemente.
+
+
+CREATE TABLE videos_count_by_tag (
+tag text,
+added_year int,
+video_count counter,
+PRIMARY KEY (tag, added_year)
+);
+
+SOURCE '~/Escritorio/csv/videos_count_by_tag.cql'
+
+SELECT added_year, video_count FROM videos_count_by_tag
+WHERE tag='nosql' AND added_year>2011;
+
+added_year | video_count
+------------+-------------
+       2012 |           3
+       2013 |           2
+       2015 |          18
+
+INSERT INTO videos_by_tag_year (tag, added_year, video_id, title)
+VALUES ('nosql', 2015, now(), 'nosql para todos');
+
+UPDATE videos_count_by_tag
+SET video_count = video_count + 1
+WHERE tag = 'nosql' AND added_year = 2015; Efectivamente aumenta en una unidad la cantidad de videos de 2015.
+
+
+
+
+EJERCICIO 6. DISEÑO GUIADO POR CONSULTAS (DESNORMALIZACIÓN)
+
+CREATE TABLE videos_by_actor (
+actor text,
+added_date timestamp,
+video_id timeuuid,
+character_name text,
+description text,
+encoding frozen<video_encoding>,
+tags set<text>,
+title text,
+user_id uuid,
+PRIMARY KEY (actor, added_date),
+) WITH CLUSTERING ORDER BY (added_date ASC);
+
+COPY videos_by_actor(actor, added_date ,video_id ,character_name ,description ,encoding ,
+tags ,title , user_id ) FROM '~/Escritorio/csv/videos_by_actor.csv' WITH HEADER=true;
+
+SELECT title, character_name FROM videos_by_actor
+WHERE actor='Jerry Lewis';
+
+ title                                 | character_name
+---------------------------------------+----------------------------
+                    The King of Comedy |             Jerry Langford
+                           Cracking Up |              Warren Nefron
+             Slapstick of Another Kind | Wilbur Swain / Caleb Swain
+                    Mr. Saturday Night |                    unknown
+                         Arizona Dream |                Leo Sweetie
+                           Funny Bones |              George Fawkes
+                   The Nutty Professor |                    unknown
+ Curious George 2: Follow That Monkey! |              Stationmaster
+
+
+SELECT title, added_date FROM videos_by_actor 
+WHERE actor='Miranda Richardson' LIMIT 12;  
+
+
+title                  | added_date
+------------------------+---------------------------------
+  Dance with a Stranger | 1985-03-01 01:00:00.000000+0000
+           Eat the Rich | 1987-10-01 01:00:00.000000+0000
+      Empire of the Sun | 1987-12-11 01:00:00.000000+0000
+        Enchanted April | 1992-01-01 01:00:00.000000+0000
+        The Crying Game | 1992-09-02 01:00:00.000000+0000
+       The Evening Star | 1996-01-01 01:00:00.000000+0000
+            Kansas City | 1996-05-01 01:00:00.000000+0000
+ The Designated Mourner | 1997-05-23 01:00:00.000000+0000
+            The Apostle | 1997-09-06 01:00:00.000000+0000
+               St. Ives | 1998-10-22 01:00:00.000000+0000
+         The King and I | 1999-01-01 01:00:00.000000+0000
+     The Big Brass Ring | 1999-04-20 01:00:00.000000+0000
+
+
+
+(Van en orden de fecha ascendente)

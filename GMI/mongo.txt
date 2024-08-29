@@ -1,0 +1,642 @@
+mongoimport --db mydb --collection municipios --file 'csv/municipios.json'
+
+mongosh
+
+use mydb
+
+db.municipios.find({poblacion:'Valencia'})
+
+[
+  {
+    _id: ObjectId('65797ce2d8a9c16433c7ec9e'),
+    comunidad: 'Valencia',
+    provincia: 'València',
+    poblacion: 'Valencia',
+    localizacion: [ 39.47024, -0.376805 ],
+    altitud: 23.335,
+    habitantes: 814208,
+    varones: 392300,
+    mujeres: 421908,
+    zip: [
+      '46001', '46002', '46003', '46004',
+      '46005', '46006', '46007', '46008',
+      '46009', '46010', '46011', '46012',
+      '46013', '46014', '46015', '46016',
+      '46017', '46018', '46019', '46020',
+      '46021', '46022', '46023', '46024',
+      '46025', '46026', '46070', '46071',
+      '46080', '46116'
+    ]
+  }
+]
+
+
+
+Ejercicio 1 (count)
+Compruebe el número de documentos de municipios que contiene la colección municipios.
+
+db.municipios.count()
+
+8112
+
+Ejercicio 2 (find)
+Consulte cuáles son los datos de una población en concreto (Moaña).
+
+db.municipios.find({poblacion:'Moaña'})
+
+[
+  {
+    _id: ObjectId('65797ce2d8a9c16433c7e692'),
+    comunidad: 'Galicia',
+    provincia: 'Pontevedra',
+    poblacion: 'Moaña',
+    localizacion: [ 42.28551, -8.749413 ],
+    altitud: 129.553,
+    habitantes: 19014,
+    varones: 9340,
+    mujeres: 9674
+  }
+]
+
+
+
+Ejercicio 3 (find y limit)
+Obtenga una lista de 5 municipios cualesquiera de la provincia de Pontevedra.
+
+db.municipios.find({poblacion:'Pontevedra'}).limit(5)
+
+[
+  {
+    _id: ObjectId('65797ce2d8a9c16433c7e69e'),
+    comunidad: 'Galicia',
+    provincia: 'Pontevedra',
+    poblacion: 'Pontevedra',
+    localizacion: [ 42.43362, -8.648053 ],
+    altitud: 18.608,
+    habitantes: 81576,
+    varones: 38662,
+    mujeres: 42914,
+    zip: [
+      '36001', '36002',
+      '36003', '36004',
+      '36005', '36070',
+      '36071', '36080',
+      '36155', '36162'
+    ]
+  }
+]
+
+
+
+Ejercicio 4 ($gt)
+Obtenga los datos de los municipios que tengan más de 2.000.000 habitantes.
+
+db.municipios.find({ habitantes: { $gt: 2000000 } })
+
+[
+  {
+    _id: ObjectId('65797ce2d8a9c16433c7e802'),
+    comunidad: 'Madrid',
+    provincia: 'Madrid',
+    poblacion: 'Madrid',
+    localizacion: [ 40.41669, -3.700346 ],
+    altitud: 653.005,
+    habitantes: 3255944,
+    varones: 1532079,
+    mujeres: 1723865,
+    zip: [
+      '28001', '28002', '28003', '28004', '28005',
+      '28006', '28007', '28008', '28009', '28010',
+      '28011', '28012', '28013', '28014', '28015',
+      '28016', '28017', '28018', '28019', '28020',
+      '28021', '28022', '28023', '28024', '28025',
+      '28026', '28027', '28028', '28029', '28030',
+      '28031', '28032', '28033', '28034', '28035',
+      '28036', '28037', '28038', '28039', '28040',
+      '28041', '28042', '28043', '28044', '28045',
+      '28046', '28047', '28048', '28049', '28050',
+      '28051', '28052', '28053', '28070', '28071',
+      '28080', '28082', '28083', '28085', '28086',
+      '28087', '28706'
+    ]
+  }
+]
+
+
+
+Ejercicio 5 (proyección)
+Muestre SOLO los nombres de los municipios con menos de 10 habitantes.
+
+db.municipios.find({ habitantes: { $lt: 10 } })
+
+[
+  {
+    _id: ObjectId('65797ce2d8a9c16433c7d700'),
+    comunidad: 'Castilla La Mancha',
+    provincia: 'Toledo',
+    poblacion: 'Illán de vacas',
+    localizacion: [ 39.97048, -4.556459 ],
+    altitud: 480.769,
+    habitantes: 5,
+    varones: 3,
+    mujeres: 2,
+    zip: [ '45681' ]
+  },
+  {
+    _id: ObjectId('65797ce2d8a9c16433c7d90b'),
+    comunidad: 'Castilla León',
+    provincia: 'Burgos',
+    poblacion: 'Jaramillo quemado',
+    localizacion: [ 42.08483, -3.360913 ],
+    altitud: 975.774,
+    habitantes: 7,
+    varones: 4,
+    mujeres: 3,
+    zip: [ '09640' ]
+  },
+  {
+    _id: ObjectId('65797ce2d8a9c16433c7e78d'),
+    comunidad: 'La Rioja',
+    provincia: 'La Rioja',
+    poblacion: 'Valdemadera',
+    localizacion: [ 41.98395, -2.073984 ],
+    altitud: 965.764,
+    habitantes: 9,
+    varones: 6,
+    mujeres: 3,
+    zip: [ '26532' ]
+  }
+]
+
+
+
+Ejercicio 6 (selección $lte y proyección)
+Muestre los nombres de las poblaciones, con la provincia donde esté y el número de habitantes (y ningún campo más) de los municipios que tengan como mucho 10 habitantes.
+
+db.municipios.find(
+  { habitantes: { $lte: 10 } },
+  { poblacion: 1, provincia: 1, habitantes: 1, _id:0} 
+)
+
+[
+  { provincia: 'Teruel', poblacion: 'Salcedillo', habitantes: 10 },
+  {
+    provincia: 'Guadalajara',
+    poblacion: 'Tordelrábano',
+    habitantes: 10
+  },
+  { provincia: 'Toledo', poblacion: 'Illán de vacas', habitantes: 5 },
+  {
+    provincia: 'Burgos',
+    poblacion: 'Jaramillo quemado',
+    habitantes: 7
+  },
+  {
+    provincia: 'Soria',
+    poblacion: 'Estepa de san juan',
+    habitantes: 10
+  },
+  { provincia: 'La Rioja', poblacion: 'Valdemadera', habitantes: 9 },
+  { provincia: 'La Rioja', poblacion: 'Villarroya', habitantes: 10 }
+]
+
+
+
+Ejercicio 7 (distinct)
+Obtenga el nombre de todas las provincias sin duplicados.
+
+db.municipios.distinct("provincia")
+
+[
+  'A Coruña',    'Alacant',       'Albacete',
+  'Almería',     'Asturias',      'Badajoz',
+  'Barcelona',   'Burgos',        'Cantabria',
+  'Castelló',    'Ceuta',         'Ciudad Real',
+  'Cuenca',      'Cáceres',       'Cádiz',
+  'Córdoba',     'Girona',        'Granada',
+  'Guadalajara', 'Guipúzcoa',     'Huelva',
+  'Huesca',      'Illes Balears', 'Jaén',
+  'La Rioja',    'Las Palmas',    'León',
+  'Lleida',      'Lugo',          'Madrid',
+  'Melilla',     'Murcia',        'Málaga',
+  'Navarra',     'Ourense',       'Palencia',
+  'Pontevedra',  'Salamanca',     'Santa Cruz de Tenerife',
+  'Segovia',     'Sevilla',       'Soria',
+  'Tarragona',   'Teruel',        'Toledo',
+  'Valladolid',  'València',      'Vizcaya',
+  'Zamora',      'Zaragoza',      'Álava',
+  'Ávila'
+]
+
+
+Ejercicio 8 (count)
+Obtenga el número total de municipios de Galicia.
+
+db.municipios.countDocuments({ comunidad: "Galicia" })
+
+315
+
+
+Ejercicio 9 (insert)
+Introduzca la siguiente población ficticia en la base de datos y compruebe cómo se ha insertado:
+poblacion: 'Meereen', habitantes: 7654321
+
+db.municipios.insertOne({
+  poblacion: 'Meereen',
+  habitantes: 7654321
+})
+
+db.municipios.find({ poblacion: 'Meereen' })
+
+[
+  {
+    _id: ObjectId('65797f883162df82fb9a25b5'),
+    poblacion: 'Meereen',
+    habitantes: 7654321
+  }
+]
+
+
+
+Ejercicio 10 (update y $set)
+Actualice los datos de Meereen para incluir altitud:12.345 compruebe que se hayan actualizado.
+
+db.municipios.updateOne(
+  { poblacion: 'Meereen' },
+  { $set: { altitud: 12.345 } }
+)
+
+db.municipios.find({ poblacion: 'Meereen' })
+
+[
+  {
+    _id: ObjectId('65797f883162df82fb9a25b5'),
+    poblacion: 'Meereen',
+    habitantes: 7654321,
+    altitud: 12.345
+  }
+]
+
+
+
+
+Ejercicio 11 (remove)
+Borre el documento de la población ficticia insertada en el paso 9 y compruebe que se haya borrado.
+
+db.municipios.deleteOne({ poblacion: 'Meereen' })
+
+
+
+Ejercicio 12 (update)
+No todos los documentos contienen el campo zip. Incluya el código postal de Segart, que es el 46592 y compruebe que se haya actualizado.
+
+db.municipios.updateOne(
+  { poblacion: 'Segart' },
+  { $set: { zip: '46592' } }
+)
+
+db.municipios.find({ poblacion: 'Segart' })
+
+[
+  {
+    _id: ObjectId('65797ce2d8a9c16433c7ec81'),
+    comunidad: 'Valencia',
+    provincia: 'València',
+    poblacion: 'Segart',
+    localizacion: [ 39.68359, -0.373618 ],
+    altitud: 273.342,
+    habitantes: 134,
+    varones: 65,
+    mujeres: 69,
+    zip: '46592'
+  }
+]
+
+
+
+
+Ejercicio 13 (find y sort y limit)
+Obtenga los datos de los dos municipios más altos de Asturias.
+
+db.municipios.find({ provincia: 'Asturias' }).sort({ altitud: -1 }).limit(2)
+
+[
+  {
+    _id: ObjectId('65797ce2d8a9c16433c7d311'),
+    comunidad: 'Asturias',
+    provincia: 'Asturias',
+    poblacion: 'Riosa',
+    localizacion: [ 43.2, -5.9 ],
+    altitud: 1073.679,
+    habitantes: 2200,
+    varones: 1119,
+    mujeres: 1081
+  },
+  {
+    _id: ObjectId('65797ce2d8a9c16433c7d31b'),
+    comunidad: 'Asturias',
+    provincia: 'Asturias',
+    poblacion: 'Somiedo',
+    localizacion: [ 43.1, -6.25 ],
+    altitud: 1017.7,
+    habitantes: 1435,
+    varones: 788,
+    mujeres: 647
+  }
+]
+
+
+
+
+Ejercicio 14 ($exists)
+Muestre únicamente el nombre de la población de los municipios de la provincia de Soria cuyo documento no tengan código postal.
+
+db.municipios.find(
+  { provincia: 'Soria', zip: { $exists: false } },
+  { poblacion: 1, _id: 0 }
+)
+
+[
+  { poblacion: 'Almenar de soria' },
+  { poblacion: 'Baraona' },
+  { poblacion: 'Burgo de osma-ciudad de osma' },
+  { poblacion: 'Riba de escalote, la' }
+]
+
+
+
+Ejercicio 15
+Muestra los nombres de población, provincia y comunidad y la localización de
+a) municipio situado más al norte de España
+
+db.municipios.find({}, { poblacion: 1, provincia: 1, comunidad: 1, localizacion: 1, _id: 0 }).sort({ "localizacion.0": -1 }).limit(1)
+
+[
+  {
+    comunidad: 'Galicia',
+    provincia: 'A Coruña',
+    poblacion: 'Mañón',
+    localizacion: [ 43.7692, -7.685581 ]
+  }
+]
+
+
+
+
+b) municipio situado más al oeste de España
+
+
+db.municipios.find({}, { poblacion: 1, provincia: 1, comunidad: 1, localizacion: 1, _id: 0 }).sort({ "localizacion.1": 1 }).limit(1)
+
+[
+  {
+    comunidad: 'Canarias',
+    provincia: 'Santa Cruz de Tenerife',
+    poblacion: 'Pinar de el hierro, el',
+    localizacion: [ 27.7255, -18.0243 ]
+  }
+]
+
+
+
+
+c) municipio situado más al sur de la Comunidad Valenciana (‘Valencia’)
+
+db.municipios.find({comunidad:'Valencia'}, { poblacion: 1, provincia: 1, comunidad: 1, localizacion: 1, _id: 0 }).sort({ "localizacion.0": 1 }).limit(1)
+
+[
+  {
+    comunidad: 'Valencia',
+    provincia: 'Alacant',
+    poblacion: 'Pilar de la horadada',
+    localizacion: [ 37.86538, -0.792508 ]
+  }
+]
+
+
+
+
+Ejercicio 16 (aggregate, $match, $group, $sum)
+Obtenga en la misma consulta el número total de habitantes de Cantabria, así como el número total de varones y total de mujeres.
+
+db.municipios.aggregate([
+  { $match: { comunidad: 'Cantabria' } },  
+  {
+    $group: {
+      _id: null,
+      totalHabitantes: { $sum: "$habitantes" },
+      totalVarones: { $sum: "$varones" },
+      totalMujeres: { $sum: "$mujeres" }
+    }
+  }
+])
+
+[
+  {
+    _id: null,
+    totalHabitantes: 589235,
+    totalVarones: 288735,
+    totalMujeres: 300500
+  }
+]
+
+
+
+
+
+Ejercicio 17
+Obtenga el listado de la población total por comunidades.
+Ordénelo de mayor a menor.
+
+db.municipios.aggregate([
+  {
+    $group: {
+      _id: "$comunidad",
+      poblacionTotal: { $sum: "$habitantes" }
+    }
+  },
+  {
+    $sort: { poblacionTotal: -1 }
+  }
+])
+
+[
+  { _id: 'Andalucía', poblacionTotal: 8302923 },
+  { _id: 'Catalunya', poblacionTotal: 7475420 },
+  { _id: 'Madrid', poblacionTotal: 6386932 },
+  { _id: 'Valencia', poblacionTotal: 5094675 },
+  { _id: 'Galicia', poblacionTotal: 2796089 },
+  { _id: 'Castilla León', poblacionTotal: 2563521 },
+  { _id: 'País Vasco', poblacionTotal: 2172175 },
+  { _id: 'Canarias', poblacionTotal: 2103992 },
+  { _id: 'Castilla La Mancha', poblacionTotal: 2081313 },
+  { _id: 'Murcia', poblacionTotal: 1446520 },
+  { _id: 'Aragón', poblacionTotal: 1345473 },
+  { _id: 'Extremadura', poblacionTotal: 1102410 },
+  { _id: 'Islas Baleares', poblacionTotal: 1095426 },
+  { _id: 'Asturias', poblacionTotal: 1085289 },
+  { _id: 'Navarra', poblacionTotal: 630578 },
+  { _id: 'Cantabria', poblacionTotal: 589235 },
+  { _id: 'La Rioja', poblacionTotal: 321702 },
+  { _id: 'Ceuta y Melilla', poblacionTotal: 152134 }
+]
+
+
+
+
+Ejercicio 18 (aggregate, $group, $avg)
+Obtenga la población promedio de los municipios de cada provincia, y ordene las provincias en orden creciente de este valor.
+
+
+db.municipios.aggregate([
+  {
+    $match: {
+      habitantes:{  $ne: null } 
+    }
+  },
+  {
+    $group: {
+      _id: "$provincia",
+      poblacionPromedio: { $avg: "$habitantes" }
+    }
+  },
+  {
+    $sort: { poblacionPromedio: 1 }
+  }
+])
+
+  { _id: 'Soria', poblacionPromedio: 519.6775956284152 },
+  { _id: 'Teruel', poblacionPromedio: 621.8262711864406 },
+  { _id: 'Ávila', poblacionPromedio: 692.258064516129 },
+  { _id: 'Segovia', poblacionPromedio: 788.7751196172248 },
+  { _id: 'Zamora', poblacionPromedio: 788.9717741935484 },
+  { _id: 'Guadalajara', poblacionPromedio: 854.6909722222222 },
+  { _id: 'Palencia', poblacionPromedio: 907.3612565445026 },
+  { _id: 'Cuenca', poblacionPromedio: 913.2899159663865 },
+  { _id: 'Salamanca', poblacionPromedio: 979.5801104972376 },
+  { _id: 'Burgos', poblacionPromedio: 1012.2991913746631 },
+  { _id: 'Huesca', poblacionPromedio: 1130.7376237623762 },
+  { _id: 'La Rioja', poblacionPromedio: 1848.8620689655172 },
+  { _id: 'Cáceres', poblacionPromedio: 1888.7351598173516 },
+  { _id: 'Lleida', poblacionPromedio: 1889.186147186147 },
+  { _id: 'Navarra', poblacionPromedio: 2318.301470588235 },
+  { _id: 'Valladolid', poblacionPromedio: 2367 },
+  { _id: 'León', poblacionPromedio: 2370.4691943127964 },
+  { _id: 'Zaragoza', poblacionPromedio: 3311.6484641638226 },
+  { _id: 'Toledo', poblacionPromedio: 3380.5637254901962 },
+  { _id: 'Girona', poblacionPromedio: 3383.628959276018 }
+  { _id: 'Ourense', poblacionPromedio: 3648.282608695652 },
+  { _id: 'Badajoz', poblacionPromedio: 4199.859756097561 },
+  { _id: 'Tarragona', poblacionPromedio: 4389.622950819672 },
+  { _id: 'Castelló', poblacionPromedio: 4461.488888888889 },
+  { _id: 'Albacete', poblacionPromedio: 4607.942528735633 },
+  { _id: 'Ciudad Real', poblacionPromedio: 5169.343137254902 },
+  { _id: 'Lugo', poblacionPromedio: 5301.417910447762 },
+  { _id: 'Granada', poblacionPromedio: 5401.357142857143 },
+  { _id: 'Cantabria', poblacionPromedio: 5776.813725490196 },
+  { _id: 'Álava', poblacionPromedio: 6153.313725490196 },
+  { _id: 'Huelva', poblacionPromedio: 6498.772151898735 },
+  { _id: 'Almería', poblacionPromedio: 6710.058823529412 },
+  { _id: 'Jaén', poblacionPromedio: 6904.969072164949 },
+  { _id: 'Guipúzcoa', poblacionPromedio: 8019.295454545455 },
+  { _id: 'València', poblacionPromedio: 9681.812030075187 },
+  { _id: 'Vizcaya', poblacionPromedio: 10291.589285714286 },
+  { _id: 'Córdoba', poblacionPromedio: 10719.973333333333 },
+  { _id: 'A Coruña', poblacionPromedio: 12186.04255319149 },
+  { _id: 'Alacant', poblacionPromedio: 13595.829787234043 },
+  { _id: 'Asturias', poblacionPromedio: 13913.961538461539 }
+  { _id: 'Pontevedra', poblacionPromedio: 15480.064516129032 },
+  { _id: 'Málaga', poblacionPromedio: 15930.68 },
+  { _id: 'Illes Balears', poblacionPromedio: 16349.641791044776 },
+  { _id: 'Barcelona', poblacionPromedio: 17646.093247588426 },
+  { _id: 'Sevilla', poblacionPromedio: 18097.371428571427 },
+  {
+    _id: 'Santa Cruz de Tenerife',
+    poblacionPromedio: 18897.962962962964
+  },
+  { _id: 'Cádiz', poblacionPromedio: 27968.045454545456 },
+  { _id: 'Las Palmas', poblacionPromedio: 31867.70588235294 },
+  { _id: 'Murcia', poblacionPromedio: 32144.88888888889 },
+  { _id: 'Madrid', poblacionPromedio: 35681.1843575419 },
+  { _id: 'Melilla', poblacionPromedio: 73460 },
+  { _id: 'Ceuta', poblacionPromedio: 78674 }
+]
+
+
+
+
+
+Ejercicio 19
+Obtenga el listado de las provincias de España que tienen una población total mayor o igual a 1.500.000 habitantes, y muestre también el número total de habitantes de cada una de esas provincias, ordenando el listado por número de habitantes decreciente.
+
+db.municipios.aggregate([
+  {
+    $group: {
+      _id: "$provincia",
+      poblacionTotal: { $sum: "$habitantes" }
+    }
+  },
+  {
+    $match: {
+      poblacionTotal: { $gte: 1500000 }
+    }
+  },
+  {
+    $sort: { poblacionTotal: -1 }
+  }
+])
+
+[
+  { _id: 'Madrid', poblacionTotal: 6386932 },
+  { _id: 'Barcelona', poblacionTotal: 5487935 },
+  { _id: 'València', poblacionTotal: 2575362 },
+  { _id: 'Alacant', poblacionTotal: 1917012 },
+  { _id: 'Sevilla', poblacionTotal: 1900224 },
+  { _id: 'Málaga', poblacionTotal: 1593068 }
+]
+
+
+
+
+Ejercicio 20
+Obtenga un listado ordenado de las provincias de ‘Castilla León’ con menos de 200.000 habitantes.
+
+
+db.municipios.aggregate([
+  {
+    $group: {
+      _id: "$provincia",
+      poblacionTotal: { $sum: "$habitantes" },
+      comunidad: { $first: "$comunidad" }
+    }
+  },
+  {
+    $match: {
+      poblacionTotal: { $lt: 200000 },
+      comunidad:'Castilla León'
+    }
+  },
+   {
+    $sort: { poblacionTotal: -1 }
+  },
+  {
+    $project: {
+      _id: 1  
+    }
+  }
+])
+
+[
+  { _id: 'Zamora' },
+  { _id: 'Palencia' },
+  { _id: 'Ávila' },
+  { _id: 'Segovia' },
+  { _id: 'Soria' }
+]
+
+
+
+Ejercicio 21(drop)
+Elimine la colección de municipios.
+
+db.municipios.drop()
