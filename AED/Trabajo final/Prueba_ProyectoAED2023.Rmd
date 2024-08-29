@@ -1,0 +1,242 @@
+---
+title: "ProyectoAED2023"
+author: "Inés Esteve, Azael García y Manuel Rubio"
+date: "2023-11-07"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## 1. Introducción. Descripción del proyecto
+
+En este proyecto, vamos a analizar el número de préstamos y devoluciones de las bicicletas de 'ValenBisi' durante el año 2022 en cada una de sus estaciones ubicadas por toda la ciudad de Valencia y, además, vamos a analizar estos datos por tramos de horas. 
+
+El trabajo partirá a través de 2 conjuntos de datos. El dataset principal sobre el que trabajaremos, llamado 'ValenBisi_2022.csv' que podemos encontrar en [https://datos.gob.es/es/catalogo/l01462508-valenbisi-2022-alquileres-y-devoluciones](https://datos.gob.es/es/catalogo/l01462508-valenbisi-2022-alquileres-y-devoluciones), muestra los datos del problema que anteriormente hemos detallado. En cambio, el otro dataset que vamos a hacer servir, 'ValenBisi_disponibilidad.csv', que podemos encontrar en ['https://datos.gob.es/es/catalogo/l01462508-valenbisi-disponibilidad']('https://datos.gob.es/es/catalogo/l01462508-valenbisi-disponibilidad') y que se actualiza cada 10 minutos, será usado únicamente con la finalidad de recoger la información de dos de sus filas, concretamente aquellas que muestran las coordenadas geográficas de cada una de las estaciones de bicicletas, para el posterior tratamiento de estas.
+
+
+
+
+
+
+# 2. Lectura de datos
+Importamos el primer conjunto de datos sobre el que vamos a trabajar, 'ValenBisi_2022.csv', que se encuentra en la carpeta 'data' que hemos creado. La lectura la realizamos haciendo uso de la libreria 'readr'.
+```{r}
+library(readr)
+
+ValenBisi_2022 <- read_delim("data/ValenBisi_2022.csv", 
+    delim = ";", escape_double = FALSE, col_types = cols(fecha_creacion = col_skip(), 
+        fecha_baja = col_skip()), trim_ws = TRUE)
+```
+ En la primera lectura de los datos hemos eliminado dos de sus columnas ya que estas no aportaban ningún tipo de información a nuestro análisis, estas columnas eran, por una parte, 'fecha_creacion', que correspondía a la fecha en la que se había creado el dataset que analizaremos y, por otra parte, 'fecha_baja', que era una columna llena de valores faltantes 'NA'.
+
+Hemos creado, un nuevo dataframe llamado 'ValenBisi_2022' que contiene nuestros datos en las siguientes columnas:
+
+-*'id'*: contiene el número de registros del conjunto de datos, enumerados desde el 1 hasta el último registro.
+
+-*'codigo_estación'*: designa, a cada estación de Valenbisi, un número concreto.
+
+-*'estacion'*: numero de código de estación seguido por el nombre de la ubicación de cada estación concreta escrita en castellano.
+
+-*'tramo_horario'*: tramo horario de cada hora del dia.
+
+-*'numero_de_prestamos'*: número de prestaciones medias en el año 2022.
+
+-*'numero_de_devoluciones'*: número de devoluciones medias en el año 2022.
+
+Vemos cual es el tipo datos que tiene cada columna, utilizando la función 'str()' que nos proporciona una descripción concisa de la estructura del dataframe:
+```{r}
+str(ValenBisi_2022)
+```
+Notamos que los elementos de las columnas 'id', 'codigo_estacion', 'numero_de_prestamos' y 'numero_de_devoluciones' són de tipo numérico y los elementos de las columnas 'estacion' y 'tramo_horario' de tipo caracter.
+
+Buscamos posibles valores faltantes(missing values) en las diistintas columnas del dataframe:
+```{r}
+#Valores faltantes por columnas: vfalt_x_col_1
+vfalt_x_col_1 <- sapply(ValenBisi_2022, function(x) sum(is.na(x)))
+
+#Visualización
+print(vfalt_x_col_1)
+```
+Acabamos de probar que no tenemos ningún valor faltante en ninguna de las columnas de nuestro dataframe, por lo que podemos seguir con tranquilidad con nuestro analisis.
+
+
+
+Como ya hemos observado, los elementos de 'tramo_horario' son de tipo caracter pero, realmente queremos que transformarlas a tipo factor para futuros análisis. Lo hacemos a continuación a través de la función 'factor()':
+```{r}
+ValenBisi_2022$tramo_horario <- factor(ValenBisi_2022$tramo_horario, ordered=TRUE)
+```
+
+Hacemos una comprovacion rápida:
+```{r}
+class(ValenBisi_2022$tramo_horario)
+```
+
+
+Comprovamos que valores diferentes puede tomar la columna 'codigo_estacion' con ayuda de la función 'unique()':
+```{r}
+unique(ValenBisi_2022$codigo_estacion)
+```
+Notamos que, pese a que los códigos del 1 al 276 són números consecutivos, hay algunos faltantes sobre los que no tendremos ningún dato, como puede ser el ejemplo de la estación 277, ya que vemos un salto de la estación 276 a la 298. Posteriormente, al realizar el 'join' con el segundo dataset, comentaremos que es lo que ocurre realmente.
+
+Veamos que, efectivamente, el número de elementos de la columna 'codigo_estacion' no corresponde con el máximo de los códigos que hay en ella, utilizamos las funciones 'length()' de la librería dplyr y 'max()' respectivamente:
+```{r}
+#Conteo del número de valores únicos en la columna codigo_estacion
+length(unique(ValenBisi_2022$codigo_estacion))
+
+#Máximo valor dentro de la columna codigo_estacion
+max(ValenBisi_2022$codigo_estacion)
+```
+
+
+Puede ser, que más tarde en el analisis necesitemos modificar los caracteres de la columna 'estacion', pero de momento, el primer paso que vamos a dar es leer el segundo conjunto de datos, 'ValenBisi_disponibilidad.csv' y almacenarlo en un nuevo dataframe:
+
+```{r}
+ValenBisi_disponibilidad <- read.csv('./data/ValenBisi_disponibilidad.csv', sep=';')
+```
+
+Realmente, tal y como hemos comentado anteriormente, solo nos interesarán 4 de sus columnas: 'Direccion', 'Numero', 'geo_shape' y 'geo_point_2D'. Vamos a detallar mejor porqué necesitamos cada una de elstas columnas:
+
+-'Direccion': nos da información detallada de la ubicación de cada una de las estaciones de biciletas, al igual que hacía la columna 'estacion' del primer dataframe, pero con la diferencia de que esta parece tener un texto más clarificador que nos puede ayudar a posteriori.
+
+-'Numero': su función es muy importante, ya que nos sirve como enlace directo con el anterior dataframe ya que los valores coinciden en cada una de las estaciones. Tanto esta columna como la de 'codigo_estacion', utilizan identificadores únicos para cada una de las estaciones, por lo que podemos unir los datos razonando a partir de esta variable.
+
+-'geo_shape':
+
+-'geo_point_2D':
+
+
+Nos quedamos con las columnas que realmente nos interesan usando el operador tubería '%>%' junto a 'select()' de la siguiente forma:
+```{r}
+library(dplyr)
+
+ValenBisi_disponibilidad <- ValenBisi_disponibilidad %>%
+                            select(Direccion,Numero,geo_shape, geo_point_2d)
+```
+
+Antes de unir los dos dataframes, vamos a observar también detalladamente este nuevo.
+```{r}
+str(ValenBisi_disponibilidad)
+```
+Notamos que las columnas 'Direccion', 'geo_shape' y 'geo_point_2d' són de tipo caracter, en cambio, la columna 'Numero', es de tipo numerico(concretamente tipo int).
+
+Buscamos posibles valores faltantes(missing values) en las diistintas columnas del dataframe:
+```{r}
+#Valores faltantes por columnas: vfalt_x_col_2
+vfalt_x_col_2 <- sapply(ValenBisi_disponibilidad, function(x) sum(is.na(x)))
+print(vfalt_x_col_2)
+
+```
+Acabamos de probar que no tenemos ningún valor faltante en ninguna de las columnas de nuestro dataframe, por lo que podemos seguir con tranquilidad con nuestro analisis.
+
+
+Antes de efectuar la combinación de nuestros dos dataframes, primero vamos a comprovar, como hemos hecho anteriormente con la columna 'codigo_estacion' del primer dataframe, que valores diferentes puede tomar la columna 'Numero' con ayuda de la función 'unique()' y 'sort()', ya que los datos no están ordenados tal como teniamos en el anterior dataframe, en orden ascendente de los valores de 'Numero':
+```{r}
+sort(unique(ValenBisi_disponibilidad$Numero))
+```
+A simple vista podemos observar que no tenemos el último valor que sí aparecía en el anterior dataframe, el que tenia como identificador el número 298. Vamos a comprovar si este es realmente el único identificador faltante.
+
+```{r}
+#Conteo del número de valores únicos en la columna codigo_estacion
+length(unique(ValenBisi_disponibilidad$Numero))
+
+#Máximo valor dentro de la columna codigo_estacion
+max(ValenBisi_disponibilidad$Numero)
+```
+Notamos, con ayuda de la visualización en tabla, que en este caso si que coinciden el número total de los identificadores con el máximo de los valores de esta columna, por lo que no hay ningún valor faltante, tal como queríamos comprovar.
+
+Volvamos al dataframe 'ValenBisi_2022' para observar que valores toma la fila que tiene como identificador o valor en la columna 'codigo_estacion', el número 298:
+```{r}
+ValenBisi_2022[ValenBisi_2022$codigo_estacion == 298, ]
+```
+Notamos que tenemos datos desde las 06 horas hasta las 15 horas.******************
+#que hacemos con la fila 298?
+
+
+Ahora sí, vamos a proceder a combinar los dos dataframes tal como hemos explicado anteriormente a través de 'left_join()':
+```{r}
+library(dplyr)
+
+ValenBisi <- ValenBisi_2022 %>%
+  left_join(ValenBisi_disponibilidad, by = c("codigo_estacion" = "Numero"))
+```
+
+Después de la combinación que acabamos de realizar, notamos que podemos haber obtenido posibles valores faltantes(missing values) en las diistintas columnas del dataframe, ya que 'left_join()' combina las filas de dos dataframes basándose en una o varias columnas comunes, y conserva todas las filas del dataframe izquierdo, llenando con valores nulos (NA) en las columnas del dataframe derecho cuando no hay coincidencias. Miremos que ha ocurrido:
+
+```{r}
+#Valores faltantes por columnas: vfalt_x_col_1
+vfalt <- sapply(ValenBisi, function(x) sum(is.na(x)))
+
+#Visualización
+print(vfalt)
+```
+
+Notamos, tal como esperabamos, la presencia de 9 filas de observaciones faltantes de las columnas 'Direccion', 'geo_shape' y 'geo_point_2d', concretamente aquellas que provienen del identificador 298 del que ya habíamos hablado. Lo comprobamos filtrando las filas con al menos un valor faltante en alguna columna:
+
+```{r}
+ValenBisi[!complete.cases(ValenBisi), ]
+```
+
+#que hacemos con la fila 298?
+Acabamos de comprobar que para el identificador 298 no tenemos ningun dato del segundo dataframe, por lo que no tenemos su geolocalización. Dado este caso, podemos seguir con el anàlisis sin tener en cuenta esta estación, o bien utilizándola solamente en los estudios donde tengamos datos sobre ella.
+
+
+A continuación, vamos a observar cuantos datos faltantes tenemos sobre 'tramo_horaro' en cada una de las estaciones, ya que, tal como hemos observado anteriormente, como tenemos 277 estaciones distintas y el tramo horario es de 1 hora, deberiamos tener un dataframe con $24 \cdot 277= 6648$ filas, pero en cambio, tenemos que nuestro dataframe solamente tiene 6609. 
+
+Tenemos entonces una pregunta que responder:
+Quales són las estaciones sobre las que nos faltan datos?
+#no he encontrado aun el codigo que me diga que estaciones son las faltantes en cada uno de los tramos horarios aunque no es estricatmente necesario saberlas, per me gustaría
+
+Paracontestar esta pregunta y para posteriores analisis, separamos nuestro dataframe ValenBisi por tramos horarios usando 'split()', que guarda en 'ValenBisi_por_tramo', cada uno de los dataframes referentes a cada tramo horario de la columna 'tramo_horario' en una lista:
+```{r}
+ValenBisi_por_tramo <- split(ValenBisi, ValenBisi$tramo_horario)
+
+#Visualización
+#print(ValenBisi_por_tramo)
+```
+
+Notamos que si queremos acceder, por ejemplo, al primero de los dataframes de cada tramo horario concreto, lo debemos hacer, bien con:
+```r
+ValenBisi_por_tramo$`00H - 01H`
+```
+O bien con 
+```r
+ValenBisi_por_tramo[[1]]
+```
+
+#que hacemos con los valores faltantes por tramo horario de cada una de las estaciones?
+
+
+
+
+#que hacemos con las diferentes columnas?
+
+Recordamos que en nuestro dataframe final tenemos que la columna, 'geo_shape' está escrita en formato JSON y contiene coordenadas geográficas donde la clave es "coordinates" y el valor es un array que contiene las coordenadas en el orden [longitud, latitud]. En cambio, la columna 'geo_point_2d' representa un par de coordenadas geográficas, donde el primer valor es la latitud y el segundo valor es la longitud.
+
+
+
+#podemos quitar la columna de 'geo_shape' pq es lo mismo que 'geo_point_2d' pero en formato JSON y creo que la otra ayudará mucho más.
+
+
+
+#podriamos reunir las estaciones por barrios un poco más grades
+#hacer analisis también sobre el numero de plazas disponibles en cada estación?
+
+
+#ORGANIZACIÓN DEL TRABAJO POR SECCIONES
+
+
+
+
+
+
+
+
+
+
+
+
+
+
